@@ -33,10 +33,7 @@
       </div>
 
       <div class="menu-title">郵件作業</div>
-      <div class="menu-item active" data-tooltip="Dashboard" onclick="showPage('dashboardPage',this)">
-        <i data-lucide="layout-dashboard" class="menu-icon"></i><span>Dashboard</span>
-      </div>
-      <div class="menu-item" data-tooltip="郵件登錄" onclick="showPage('registerPage',this)">
+      <div class="menu-item active" data-tooltip="郵件登錄" onclick="showPage('registerPage',this)">
         <i data-lucide="square-pen" class="menu-icon"></i><span>郵件登錄</span>
       </div>
       <div class="menu-item" data-tooltip="簽收單產生" onclick="showPage('sheetPage',this); renderSheetPage();">
@@ -74,33 +71,19 @@
     </aside>
 
     <main class="main">
-      <section id="dashboardPage" class="page">
-        <div class="page-title-row">
+      <section id="registerPage" class="page">
+        <div class="register-page-heading">
           <div>
-            <h1>Dashboard</h1>
-            <p>今日郵件登錄、待列印與本月收件概況</p>
+            <h1>郵件登錄</h1>
+            <p>登錄收到的郵件，完成後可繼續輸入同日期、類型與部門的下一筆。</p>
           </div>
-          <button class="btn btn-primary small" onclick="showPage('registerPage', document.querySelector('[onclick*=registerPage]'))">新增郵件</button>
         </div>
-        <div class="kpi-grid">
+        <div class="kpi-grid compact-kpi-grid">
           <div class="kpi-card"><div class="kpi-title">今日收件</div><div class="kpi-value" id="kpiToday">0</div><div class="kpi-sub">今日登錄郵件</div></div>
-          <div class="kpi-card"><div class="kpi-title">待列印</div><div class="kpi-value" id="kpiPendingPrint">0</div><div class="kpi-sub">尚未產生簽收單</div></div>
+          <button class="kpi-card kpi-card-button" onclick="openPendingPrint()"><div class="kpi-title">待列印</div><div class="kpi-value" id="kpiPendingPrint">0</div><div class="kpi-sub">點擊前往簽收單</div></button>
           <div class="kpi-card"><div class="kpi-title">本月收件</div><div class="kpi-value" id="kpiMonth">0</div><div class="kpi-sub">本月累計</div></div>
           <div class="kpi-card"><div class="kpi-title">本月掛號 / 限掛</div><div class="kpi-value" id="kpiRegistered">0</div><div class="kpi-sub">掛號與限掛合計</div></div>
         </div>
-        <div class="grid two-col">
-          <div class="panel">
-            <h2 class="detail-title"><i data-lucide="inbox" class="detail-title-icon"></i>今日各部門收件</h2>
-            <div id="todayDeptSummary" class="summary-list"></div>
-          </div>
-          <div class="panel">
-            <h2 class="detail-title"><i data-lucide="pie-chart" class="detail-title-icon"></i>郵件類型統計</h2>
-            <div id="typeSummary" class="summary-list"></div>
-          </div>
-        </div>
-      </section>
-
-      <section id="registerPage" class="page hidden">
         <div class="panel narrow-panel">
           <h2 class="detail-title"><i data-lucide="square-pen" class="detail-title-icon"></i>郵件登錄</h2>
           <p class="page-desc">收到郵件後，先登錄資料；之後可依部門產生紙本簽收單。</p>
@@ -288,6 +271,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.5.9"></script>
+<script src="./app.js?v=1.6.0"></script>
 </body>
 </html>
