@@ -10,12 +10,14 @@
 6. 「郵件查詢」可切換「外部來信」與「大宗寄件」。
 7. 大宗寄件資料可依日期、類型、掛號號碼、收件人、地址或批次編號查詢。
 8. 查詢結果可匯出 Excel。
+9. 管理者可在「郵件類型維護」新增、改名、排序或刪除郵件類型。
 
 Firestore
 新增使用集合：outgoingMailBatches
+新增使用集合：mailTypes
 
 若畫面顯示 Missing or insufficient permissions，需在 Firebase Firestore Rules
-允許已登入且已開通的公司使用者讀寫 outgoingMailBatches。
+允許已登入且已開通的公司使用者讀寫 outgoingMailBatches 與 mailTypes。
 
 列印
 1. 先填寫交寄日期、寄件人及寄件明細。

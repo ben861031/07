@@ -53,6 +53,9 @@
       <div class="menu-item admin-only" data-tooltip="部門維護" onclick="showPage('deptPage',this)">
         <i data-lucide="building-2" class="menu-icon"></i><span>部門維護</span>
       </div>
+      <div class="menu-item admin-only" data-tooltip="郵件類型維護" onclick="showPage('mailTypePage',this)">
+        <i data-lucide="tags" class="menu-icon"></i><span>郵件類型維護</span>
+      </div>
       <div class="menu-item admin-only" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)">
         <i data-lucide="users" class="menu-icon"></i><span>權限管理</span>
       </div>
@@ -243,6 +246,19 @@
         </div>
       </section>
 
+      <section id="mailTypePage" class="page hidden">
+        <div class="panel narrow-panel">
+          <h2 class="detail-title"><i data-lucide="tags" class="detail-title-icon"></i>郵件類型維護</h2>
+          <p class="page-desc">這裡設定的類型會顯示在「郵件登錄」與「郵件查詢」。刪除類型不會影響既有郵件紀錄。</p>
+          <div class="form-grid compact">
+            <div class="form-group"><label>郵件類型名稱</label><input type="text" id="newMailType" placeholder="例如：快捷、包裹"></div>
+            <div class="form-group"><label>顯示順序</label><input type="number" id="newMailTypeOrder"></div>
+          </div>
+          <button class="btn btn-green" onclick="addMailType()">新增郵件類型</button>
+          <div id="mailTypeListArea" class="maintenance-list"></div>
+        </div>
+      </section>
+
       <section id="permissionPage" class="page hidden">
         <div class="panel narrow-panel">
           <h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2>
@@ -272,6 +288,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.5.6"></script>
+<script src="./app.js?v=1.5.7"></script>
 </body>
 </html>
