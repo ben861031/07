@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>郵件 / 掛號簽收管理系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="login-icon">✉️</div>
+    <h1>郵件 / 掛號簽收管理系統</h1>
+    <p>Mail Receipt Management System</p>
+    <button class="btn btn-primary" onclick="googleLogin()">Google 登入</button>
+  </div>
+</div>
+
+<div id="systemArea" class="system-area">
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="logo">
+        <button id="sidebarToggle" class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        <div class="logo-content">
+          <div class="logo-title">郵件簽收管理系統</div>
+          <div class="logo-sub">Mail Receipt System</div>
+        </div>
+      </div>
+
+      <div class="menu-title">郵件作業</div>
+      <div class="menu-item active" data-tooltip="Dashboard" onclick="showPage('dashboardPage',this)">
+        <i data-lucide="layout-dashboard" class="menu-icon"></i><span>Dashboard</span>
+      </div>
+      <div class="menu-item" data-tooltip="郵件登錄" onclick="showPage('registerPage',this)">
+        <i data-lucide="square-pen" class="menu-icon"></i><span>郵件登錄</span>
+      </div>
+      <div class="menu-item" data-tooltip="簽收單產生" onclick="showPage('sheetPage',this); renderSheetPage();">
+        <i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span>
+      </div>
+      <div class="menu-item" data-tooltip="郵件查詢" onclick="showPage('historyPage',this)">
+        <i data-lucide="search" class="menu-icon"></i><span>郵件查詢</span>
+      </div>
+
+      <div class="menu-title" id="systemMenuTitle">系統管理</div>
+      <div class="menu-item admin-only" data-tooltip="部門維護" onclick="showPage('deptPage',this)">
+        <i data-lucide="building-2" class="menu-icon"></i><span>部門維護</span>
+      </div>
+      <div class="menu-item admin-only" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)">
+        <i data-lucide="users" class="menu-icon"></i><span>權限管理</span>
+      </div>
+      <div class="menu-item admin-only" id="auditLogMenu" data-tooltip="操作紀錄" onclick="showPage('auditLogPage',this); loadAuditLogs();">
+        <i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span>
+      </div>
+      <div class="menu-item admin-only" id="loginLogMenu" data-tooltip="登入紀錄" onclick="showPage('loginLogPage',this); loadLoginLogs();">
+        <i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span>
+      </div>
+
+      <div class="sidebar-user">
+        <div id="sidebarUserName">使用者</div>
+        <div id="sidebarUserEmail">-</div>
+        <button class="logout-menu-btn" onclick="logout()">登出</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="dashboardPage" class="page">
+        <div class="page-title-row">
+          <div>
+            <h1>Dashboard</h1>
+            <p>今日郵件登錄、待列印與本月收件概況</p>
+          </div>
+          <button class="btn btn-primary small" onclick="showPage('registerPage', document.querySelector('[onclick*=registerPage]'))">新增郵件</button>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-title">今日收件</div><div class="kpi-value" id="kpiToday">0</div><div class="kpi-sub">今日登錄郵件</div></div>
+          <div class="kpi-card"><div class="kpi-title">待列印</div><div class="kpi-value" id="kpiPendingPrint">0</div><div class="kpi-sub">尚未產生簽收單</div></div>
+          <div class="kpi-card"><div class="kpi-title">本月收件</div><div class="kpi-value" id="kpiMonth">0</div><div class="kpi-sub">本月累計</div></div>
+          <div class="kpi-card"><div class="kpi-title">本月掛號 / 限掛</div><div class="kpi-value" id="kpiRegistered">0</div><div class="kpi-sub">掛號與限掛合計</div></div>
+        </div>
+        <div class="grid two-col">
+          <div class="panel">
+            <h2 class="detail-title"><i data-lucide="inbox" class="detail-title-icon"></i>今日各部門收件</h2>
+            <div id="todayDeptSummary" class="summary-list"></div>
+          </div>
+          <div class="panel">
+            <h2 class="detail-title"><i data-lucide="pie-chart" class="detail-title-icon"></i>郵件類型統計</h2>
+            <div id="typeSummary" class="summary-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="registerPage" class="page hidden">
+        <div class="panel narrow-panel">
+          <h2 class="detail-title"><i data-lucide="square-pen" class="detail-title-icon"></i>郵件登錄</h2>
+          <p class="page-desc">收到郵件後，先登錄資料；之後可依部門產生紙本簽收單。</p>
+          <input type="hidden" id="mailId">
+          <div class="form-grid">
+            <div class="form-group"><label>收件日期</label><input type="date" id="receiveDate"></div>
+            <div class="form-group"><label>郵件類型</label><select id="mailType"></select></div>
+            <div class="form-group"><label>掛號 / 單號</label><input type="text" id="trackingNo" placeholder="平信可留空"></div>
+            <div class="form-group"><label>寄件人 / 寄件單位</label><input type="text" id="sender"></div>
+            <div class="form-group"><label>收件部門</label><select id="department"></select></div>
+            <div class="form-group"><label>收件人</label><input type="text" id="receiver"></div>
+            <div class="form-group span-2"><label>郵件主旨 / 摘要</label><input type="text" id="subject" placeholder="例如：法院通知、銀行函件、廠商資料"></div>
+            <div class="form-group span-2"><label>備註</label><textarea id="remark" rows="3"></textarea></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-gray" onclick="resetMailForm()">清空</button>
+            <button class="btn btn-primary" onclick="saveMailRecord()">儲存郵件</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="sheetPage" class="page hidden">
+        <div class="panel">
+          <h2 class="detail-title"><i data-lucide="printer" class="detail-title-icon"></i>簽收單產生</h2>
+          <p class="page-desc">可勾選一個或多個部門，產生同一張簽收單。列印後可標記為已列印，避免重複列印。</p>
+          <div class="sheet-toolbar">
+            <label><span>收件日期</span><input type="date" id="sheetDate" onchange="renderSheetPage()"></label>
+            <label class="checkbox-line"><input type="checkbox" id="sheetOnlyUnprinted" checked onchange="renderSheetPage()">只顯示未列印郵件</label>
+            <button class="btn btn-gray" onclick="selectAllSheetDepartments(true)">全選</button>
+            <button class="btn btn-gray" onclick="selectAllSheetDepartments(false)">清空</button>
+            <button class="btn btn-primary" onclick="generateSignSheet()">產生簽收單</button>
+          </div>
+          <div id="sheetDeptList" class="dept-check-grid"></div>
+        </div>
+
+        <div class="panel" id="sheetPreviewPanel">
+          <div class="print-action-row">
+            <h2 class="detail-title"><i data-lucide="file-text" class="detail-title-icon"></i>簽收單預覽</h2>
+            <div>
+              <button class="btn btn-gray" onclick="window.print()">列印</button>
+              <button class="btn btn-green" onclick="markSelectedAsPrinted()">標記為已列印</button>
+            </div>
+          </div>
+          <div id="signSheetPreview" class="sign-sheet-preview empty-preview">請先勾選部門並產生簽收單。</div>
+        </div>
+      </section>
+
+      <section id="historyPage" class="page hidden">
+        <div class="panel">
+          <h2 class="detail-title"><i data-lucide="search" class="detail-title-icon"></i>郵件查詢</h2>
+          <div class="search-toolbar">
+            <input type="text" id="searchInput" class="search-main" placeholder="搜尋掛號編號、寄件人、收件人、部門、主旨、備註">
+            <div class="search-row">
+              <div class="filter-card"><i data-lucide="mail"></i><select id="typeFilter"><option value="">全部類型</option></select></div>
+              <div class="filter-card"><i data-lucide="building-2"></i><select id="deptFilter"><option value="">全部部門</option></select></div>
+              <div class="filter-card"><i data-lucide="check-circle"></i><select id="printedFilter"><option value="">全部狀態</option><option value="unprinted">未列印</option><option value="printed">已列印</option></select></div>
+              <button class="filter-advanced-btn" onclick="toggleAdvancedFilter()"><i data-lucide="sliders-horizontal"></i><span id="filterToggleText">進階篩選</span></button>
+              <div class="search-actions"><span class="record-count">共 <b id="recordCount">0</b> 筆</span><button class="btn btn-gray" onclick="resetHistoryFilter()">重設</button><button class="btn btn-green" onclick="exportExcel()">匯出 Excel</button></div>
+            </div>
+            <div id="advancedFilter">
+              <div class="advanced-filter-layout">
+                <div class="advanced-date-row">
+                  <label class="date-filter-field"><span>收件日期起</span><input type="date" id="dateStart"></label>
+                  <label class="date-filter-field"><span>收件日期迄</span><input type="date" id="dateEnd"></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>收件日期</th><th>類型</th><th>掛號 / 單號</th><th>寄件人</th><th>部門</th><th>收件人</th><th>主旨</th><th>狀態</th><th>操作</th></tr></thead>
+              <tbody id="mailTable"></tbody>
+            </table>
+          </div>
+          <div class="pagination-row"><div>每頁顯示：<select id="pageSizeSelect" onchange="changePageSize()"><option value="10">10 筆</option><option value="25">25 筆</option><option value="50">50 筆</option></select></div><div id="paginationArea"></div></div>
+        </div>
+      </section>
+
+      <section id="deptPage" class="page hidden">
+        <div class="panel narrow-panel">
+          <h2 class="detail-title"><i data-lucide="building-2" class="detail-title-icon"></i>部門維護</h2>
+          <div class="form-grid compact">
+            <div class="form-group"><label>部門名稱</label><input type="text" id="newDept"></div>
+            <div class="form-group"><label>顯示順序</label><input type="number" id="newDeptOrder"></div>
+          </div>
+          <button class="btn btn-green" onclick="addDepartment()">新增部門</button>
+          <div id="deptListArea" class="maintenance-list"></div>
+        </div>
+      </section>
+
+      <section id="permissionPage" class="page hidden">
+        <div class="panel narrow-panel">
+          <h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2>
+          <div class="form-group"><label>Email</label><input type="email" id="newUserEmail" placeholder="user@company.com"></div>
+          <button class="btn btn-green" onclick="addWhitelistUser()">新增白名單</button>
+          <div id="userListArea" class="maintenance-list"></div>
+        </div>
+      </section>
+
+      <section id="auditLogPage" class="page hidden">
+        <div class="panel">
+          <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>操作紀錄 <span id="auditCount">(0筆)</span></h2>
+          <div class="audit-toolbar"><input type="text" id="auditSearch" placeholder="搜尋操作者、Email、操作內容"><select id="auditActionFilter"><option value="">全部操作</option><option value="create">新增</option><option value="update">修改</option><option value="delete">刪除</option><option value="print">列印</option><option value="permission">權限異動</option></select><button class="btn btn-gray" onclick="resetAuditFilter()">重設</button></div>
+          <div class="table-wrap"><table><thead><tr><th>時間</th><th>操作者</th><th>角色</th><th>操作</th><th>類別</th><th>對象</th><th>內容</th></tr></thead><tbody id="auditLogTable"></tbody></table></div>
+          <div class="pagination-row"><div>每頁顯示：<select id="auditPageSize" onchange="changeAuditPageSize()"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div><div id="auditPagination"></div></div>
+        </div>
+      </section>
+
+      <section id="loginLogPage" class="page hidden">
+        <div class="panel">
+          <h2 class="detail-title"><i data-lucide="log-in" class="detail-title-icon"></i>登入紀錄 <span id="loginCount">(0筆)</span></h2>
+          <div class="table-wrap"><table><thead><tr><th>登入時間</th><th>姓名</th><th>Email</th><th>角色</th></tr></thead><tbody id="loginLogTable"></tbody></table></div>
+          <div class="pagination-row"><div>每頁顯示：<select id="loginPageSize" onchange="changeLoginPageSize()"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select></div><div id="loginPagination"></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="./app.js"></script>
+</body>
+</html>
