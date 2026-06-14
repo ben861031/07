@@ -149,12 +149,11 @@
           <div class="print-action-row">
             <div>
               <h2 class="detail-title"><i data-lucide="send" class="detail-title-icon"></i>大宗掛號寄件</h2>
-              <p class="page-desc">每批最多 20 件。儲存後可直接列印郵局「交寄大宗限時掛號及掛號函件執據存根」格式。</p>
+              <p class="page-desc">每張最多登錄 20 件。填寫完成後先儲存，再下載郵局原版 Word 表單。</p>
             </div>
             <div>
-              <button class="btn btn-gray" onclick="resetOutgoingForm()">新增批次</button>
-              <button class="btn btn-green" onclick="saveOutgoingBatch()">儲存批次</button>
-              <button class="btn btn-gray" onclick="printOutgoingForm()">瀏覽器預覽</button>
+              <button class="btn btn-gray" onclick="startNewOutgoingForm()">清空重填</button>
+              <button class="btn btn-green" onclick="saveOutgoingBatch()">儲存寄件資料</button>
               <button class="btn btn-primary" onclick="downloadOutgoingWord()">下載原版 Word</button>
             </div>
           </div>
@@ -162,9 +161,9 @@
           <div class="form-grid outgoing-header-grid">
             <div class="form-group"><label>交寄日期</label><input type="date" id="outgoingDate"></div>
             <div class="form-group"><label>郵件種類</label><select id="outgoingType"><option>掛號函件</option><option>限時掛號</option><option>快捷郵件</option></select></div>
-            <div class="form-group"><label>寄件人名稱</label><input type="text" id="outgoingSenderName" placeholder="公司或單位名稱"></div>
+            <div class="form-group"><label>公司名稱</label><input type="text" id="outgoingSenderName" placeholder="請輸入公司名稱"></div>
             <div class="form-group"><label>寄件人代表</label><input type="text" id="outgoingRepresentative"></div>
-            <div class="form-group span-2"><label>詳細地址</label><input type="text" id="outgoingSenderAddress"></div>
+            <div class="form-group"><label>公司地址</label><input type="text" id="outgoingSenderAddress"></div>
             <div class="form-group"><label>電話號碼</label><input type="text" id="outgoingSenderPhone"></div>
           </div>
           <div class="table-wrap outgoing-entry-wrap">
@@ -193,7 +192,7 @@
         </div>
 
         <div class="panel outgoing-history-panel">
-          <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>最近寄件批次</h2>
+          <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>最近寄件紀錄</h2>
           <div id="outgoingBatchList" class="maintenance-list"></div>
         </div>
 
@@ -273,6 +272,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.5.4"></script>
+<script src="./app.js?v=1.5.5"></script>
 </body>
 </html>
