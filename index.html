@@ -105,7 +105,6 @@
             <div class="form-group"><label>寄件人 / 寄件單位</label><input type="text" id="sender"></div>
             <div class="form-group"><label>收件部門</label><select id="department"></select></div>
             <div class="form-group"><label>收件人</label><input type="text" id="receiver"></div>
-            <div class="form-group span-2"><label>郵件主旨 / 摘要</label><input type="text" id="subject" placeholder="例如：法院通知、銀行函件、廠商資料"></div>
             <div class="form-group span-2"><label>備註</label><textarea id="remark" rows="3"></textarea></div>
           </div>
           <div class="form-actions">
@@ -145,7 +144,7 @@
         <div class="panel">
           <h2 class="detail-title"><i data-lucide="search" class="detail-title-icon"></i>郵件查詢</h2>
           <div class="search-toolbar">
-            <input type="text" id="searchInput" class="search-main" placeholder="搜尋掛號編號、寄件人、收件人、部門、主旨、備註">
+            <input type="text" id="searchInput" class="search-main" placeholder="搜尋掛號編號、寄件人、收件人、部門、備註">
             <div class="search-row">
               <div class="filter-card"><i data-lucide="mail"></i><select id="typeFilter"><option value="">全部類型</option></select></div>
               <div class="filter-card"><i data-lucide="building-2"></i><select id="deptFilter"><option value="">全部部門</option></select></div>
@@ -164,7 +163,7 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>收件日期</th><th>類型</th><th>掛號 / 單號</th><th>寄件人</th><th>部門</th><th>收件人</th><th>主旨</th><th>狀態</th><th>操作</th></tr></thead>
+              <thead><tr><th>收件日期</th><th>類型</th><th>掛號 / 單號</th><th>寄件人</th><th>部門</th><th>收件人</th><th>狀態</th><th>操作</th></tr></thead>
               <tbody id="mailTable"></tbody>
             </table>
           </div>
