@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.5.1">
+<link rel="stylesheet" href="./styles.css?v=1.6.1">
 </head>
 <body>
 
@@ -218,7 +218,7 @@
       </section>
 
       <section id="deptPage" class="page hidden">
-        <div class="panel narrow-panel">
+        <div class="panel admin-wide-panel">
           <h2 class="detail-title"><i data-lucide="building-2" class="detail-title-icon"></i>部門維護</h2>
           <div class="form-grid compact">
             <div class="form-group"><label>部門名稱</label><input type="text" id="newDept"></div>
@@ -230,7 +230,7 @@
       </section>
 
       <section id="mailTypePage" class="page hidden">
-        <div class="panel narrow-panel">
+        <div class="panel admin-wide-panel">
           <h2 class="detail-title"><i data-lucide="tags" class="detail-title-icon"></i>郵件類型維護</h2>
           <p class="page-desc">這裡設定的類型會顯示在「郵件登錄」與「郵件查詢」。刪除類型不會影響既有郵件紀錄。</p>
           <div class="form-grid compact">
@@ -243,7 +243,7 @@
       </section>
 
       <section id="permissionPage" class="page hidden">
-        <div class="panel narrow-panel">
+        <div class="panel admin-wide-panel">
           <h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2>
           <div class="form-group"><label>Email</label><input type="email" id="newUserEmail" placeholder="user@company.com"></div>
           <button class="btn btn-green" onclick="addWhitelistUser()">新增白名單</button>
@@ -271,6 +271,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.6.0"></script>
+<script src="./app.js?v=1.6.1"></script>
 </body>
 </html>
