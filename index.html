@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./styles.css?v=1.5.1">
 </head>
 <body>
 
@@ -169,7 +169,20 @@
           <div class="table-wrap outgoing-entry-wrap">
             <table class="outgoing-entry-table">
               <thead><tr><th>#</th><th>掛號號碼</th><th>收件人姓名</th><th>寄達地名（或地址）</th><th>回執</th><th>印刷物</th><th>重量</th><th>郵資</th><th>內裝物品名稱</th><th></th></tr></thead>
-              <tbody id="outgoingEntryRows"></tbody>
+              <tbody id="outgoingEntryRows">
+                <tr class="outgoing-entry-row">
+                  <td class="outgoing-seq">1</td>
+                  <td><input data-field="trackingNo"></td>
+                  <td><input data-field="receiverName"></td>
+                  <td><input data-field="address"></td>
+                  <td><input type="checkbox" data-field="returnReceipt"></td>
+                  <td><input type="checkbox" data-field="printedMatter"></td>
+                  <td><input data-field="weight"></td>
+                  <td><input data-field="postage"></td>
+                  <td><input data-field="contents"></td>
+                  <td><button class="btn btn-red outgoing-remove-btn" type="button" onclick="removeOutgoingRow(this)">刪除</button></td>
+                </tr>
+              </tbody>
             </table>
           </div>
           <div class="outgoing-entry-actions">
@@ -259,6 +272,6 @@
   </div>
 </div>
 
-<script src="./app.js"></script>
+<script src="./app.js?v=1.5.1"></script>
 </body>
 </html>
