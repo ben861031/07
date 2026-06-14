@@ -41,6 +41,9 @@
       <div class="menu-item" data-tooltip="簽收單產生" onclick="showPage('sheetPage',this); renderSheetPage();">
         <i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span>
       </div>
+      <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="showPage('outgoingPage',this); prepareOutgoingPage();">
+        <i data-lucide="send" class="menu-icon"></i><span>大宗掛號寄件</span>
+      </div>
       <div class="menu-item" data-tooltip="郵件查詢" onclick="showPage('historyPage',this)">
         <i data-lucide="search" class="menu-icon"></i><span>郵件查詢</span>
       </div>
@@ -140,12 +143,56 @@
         </div>
       </section>
 
+      <section id="outgoingPage" class="page hidden">
+        <div class="panel">
+          <div class="print-action-row">
+            <div>
+              <h2 class="detail-title"><i data-lucide="send" class="detail-title-icon"></i>大宗掛號寄件</h2>
+              <p class="page-desc">每批最多 20 件。儲存後可直接列印郵局「交寄大宗限時掛號及掛號函件執據存根」格式。</p>
+            </div>
+            <div>
+              <button class="btn btn-gray" onclick="resetOutgoingForm()">新增批次</button>
+              <button class="btn btn-green" onclick="saveOutgoingBatch()">儲存批次</button>
+              <button class="btn btn-primary" onclick="printOutgoingForm()">套表列印</button>
+            </div>
+          </div>
+          <input type="hidden" id="outgoingBatchId">
+          <div class="form-grid outgoing-header-grid">
+            <div class="form-group"><label>交寄日期</label><input type="date" id="outgoingDate"></div>
+            <div class="form-group"><label>郵件種類</label><select id="outgoingType"><option>掛號函件</option><option>限時掛號</option><option>快捷郵件</option></select></div>
+            <div class="form-group"><label>寄件人名稱</label><input type="text" id="outgoingSenderName" placeholder="公司或單位名稱"></div>
+            <div class="form-group"><label>寄件人代表</label><input type="text" id="outgoingRepresentative"></div>
+            <div class="form-group span-2"><label>詳細地址</label><input type="text" id="outgoingSenderAddress"></div>
+            <div class="form-group"><label>電話號碼</label><input type="text" id="outgoingSenderPhone"></div>
+            <div class="form-group"><label>內外埠分類</label><select id="outgoingRegion"><option value="外埠">外埠</option><option value="本埠">本埠</option></select></div>
+          </div>
+          <div class="table-wrap outgoing-entry-wrap">
+            <table class="outgoing-entry-table">
+              <thead><tr><th>#</th><th>掛號號碼</th><th>收件人姓名</th><th>寄達地名（或地址）</th><th>回執</th><th>印刷物</th><th>重量</th><th>郵資</th><th>內裝物品名稱</th><th></th></tr></thead>
+              <tbody id="outgoingEntryRows"></tbody>
+            </table>
+          </div>
+          <div class="outgoing-entry-actions">
+            <span id="outgoingItemCount">共 1 件</span>
+            <button class="btn btn-gray" onclick="addOutgoingRow()">新增一列</button>
+          </div>
+        </div>
+
+        <div class="panel outgoing-history-panel">
+          <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>最近寄件批次</h2>
+          <div id="outgoingBatchList" class="maintenance-list"></div>
+        </div>
+
+        <div id="outgoingPrintArea" class="outgoing-print-area"></div>
+      </section>
+
       <section id="historyPage" class="page hidden">
         <div class="panel">
           <h2 class="detail-title"><i data-lucide="search" class="detail-title-icon"></i>郵件查詢</h2>
           <div class="search-toolbar">
             <input type="text" id="searchInput" class="search-main" placeholder="搜尋掛號編號、寄件人、收件人、部門、備註">
             <div class="search-row">
+              <div class="filter-card"><i data-lucide="arrow-left-right"></i><select id="directionFilter"><option value="incoming">外部來信</option><option value="outgoing">大宗寄件</option></select></div>
               <div class="filter-card"><i data-lucide="mail"></i><select id="typeFilter"><option value="">全部類型</option></select></div>
               <div class="filter-card"><i data-lucide="building-2"></i><select id="deptFilter"><option value="">全部部門</option></select></div>
               <div class="filter-card"><i data-lucide="check-circle"></i><select id="printedFilter"><option value="">全部狀態</option><option value="unprinted">未列印</option><option value="printed">已列印</option></select></div>
