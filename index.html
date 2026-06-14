@@ -6,6 +6,7 @@
 <title>郵件 / 掛號簽收管理系統</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="stylesheet" href="./styles.css?v=1.5.1">
 </head>
@@ -153,7 +154,8 @@
             <div>
               <button class="btn btn-gray" onclick="resetOutgoingForm()">新增批次</button>
               <button class="btn btn-green" onclick="saveOutgoingBatch()">儲存批次</button>
-              <button class="btn btn-primary" onclick="printOutgoingForm()">套表列印</button>
+              <button class="btn btn-gray" onclick="printOutgoingForm()">瀏覽器預覽</button>
+              <button class="btn btn-primary" onclick="downloadOutgoingWord()">下載原版 Word</button>
             </div>
           </div>
           <input type="hidden" id="outgoingBatchId">
@@ -272,6 +274,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.5.1"></script>
+<script src="./app.js?v=1.5.2"></script>
 </body>
 </html>
