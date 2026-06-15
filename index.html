@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.6.2">
+<link rel="stylesheet" href="./styles.css?v=1.7.0">
 </head>
 <body>
 
@@ -135,12 +135,12 @@
           <div class="print-action-row">
             <div>
               <h2 class="detail-title"><i data-lucide="send" class="detail-title-icon"></i>大宗掛號寄件</h2>
-              <p class="page-desc">每張最多登錄 20 件。填寫完成後先儲存，再下載郵局原版 Word 表單。</p>
+              <p class="page-desc">每張最多登錄 20 件。填寫完成後先儲存，再下載郵局原版 Excel 表單。</p>
             </div>
             <div>
               <button class="btn btn-gray" onclick="startNewOutgoingForm()">清空重填</button>
               <button class="btn btn-green" onclick="saveOutgoingBatch()">儲存寄件資料</button>
-              <button class="btn btn-primary" onclick="downloadOutgoingWord()">下載原版 Word</button>
+              <button class="btn btn-primary" onclick="downloadOutgoingExcel()">下載原版 Excel</button>
             </div>
           </div>
           <input type="hidden" id="outgoingBatchId">
@@ -271,6 +271,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.6.2"></script>
+<script src="./app.js?v=1.7.0"></script>
 </body>
 </html>
