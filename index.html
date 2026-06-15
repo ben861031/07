@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.4">
+<link rel="stylesheet" href="./styles.css?v=1.7.5">
 </head>
 <body>
 
@@ -136,7 +136,7 @@
           <div class="print-action-row">
             <div>
               <h2 class="detail-title"><i data-lucide="send" class="detail-title-icon"></i>大宗掛號寄件</h2>
-              <p class="page-desc">每張最多登錄 20 件。填寫完成後先儲存，再下載郵局原版 Excel 表單。</p>
+              <p class="page-desc">預設提供 20 列快速登打；收件人姓名與寄達地名皆有填寫的列才會建檔。</p>
             </div>
             <div>
               <button class="btn btn-gray" onclick="startNewOutgoingForm()">清空重填</button>
@@ -153,28 +153,18 @@
             <div class="form-group"><label>公司地址</label><input type="text" id="outgoingSenderAddress"></div>
             <div class="form-group"><label>電話號碼</label><input type="text" id="outgoingSenderPhone"></div>
           </div>
+          <div class="outgoing-table-toolbar">
+            <span>可使用方向鍵或 Enter 快速移動欄位</span>
+            <button class="btn btn-gray" type="button" id="outgoingAdvancedToggle" onclick="toggleOutgoingAdvanced()">顯示進階欄位</button>
+          </div>
           <div class="table-wrap outgoing-entry-wrap">
             <table class="outgoing-entry-table">
-              <thead><tr><th>#</th><th>掛號號碼</th><th>收件人姓名</th><th>寄達地名（或地址）</th><th>回執</th><th>印刷物</th><th>重量</th><th>郵資</th><th>內裝物品名稱</th><th></th></tr></thead>
-              <tbody id="outgoingEntryRows">
-                <tr class="outgoing-entry-row">
-                  <td class="outgoing-seq">1</td>
-                  <td><input data-field="trackingNo"></td>
-                  <td><input data-field="receiverName"></td>
-                  <td><input data-field="address"></td>
-                  <td><input type="checkbox" data-field="returnReceipt"></td>
-                  <td><input type="checkbox" data-field="printedMatter"></td>
-                  <td><input data-field="weight"></td>
-                  <td><input data-field="postage"></td>
-                  <td><input data-field="contents"></td>
-                  <td><button class="btn btn-red outgoing-remove-btn" type="button" onclick="removeOutgoingRow(this)">刪除</button></td>
-                </tr>
-              </tbody>
+              <thead><tr><th>#</th><th>掛號編號</th><th>收件人姓名</th><th>寄達地名（或地址）</th><th class="outgoing-advanced-col">回執</th><th class="outgoing-advanced-col">印刷物</th><th class="outgoing-advanced-col">重量</th><th class="outgoing-advanced-col">郵資</th><th class="outgoing-advanced-col">內裝物品名稱</th></tr></thead>
+              <tbody id="outgoingEntryRows"></tbody>
             </table>
           </div>
           <div class="outgoing-entry-actions">
-            <span id="outgoingItemCount">共 1 件</span>
-            <button class="btn btn-gray" onclick="addOutgoingRow()">新增一列</button>
+            <span id="outgoingItemCount">有效資料 0 件／共 20 列</span>
           </div>
         </div>
 
@@ -272,6 +262,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.4"></script>
+<script src="./app.js?v=1.7.5"></script>
 </body>
 </html>
