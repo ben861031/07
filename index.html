@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.0">
+<link rel="stylesheet" href="./styles.css?v=1.7.1">
 </head>
 <body>
 
@@ -107,7 +107,7 @@
       <section id="sheetPage" class="page hidden">
         <div class="panel">
           <h2 class="detail-title"><i data-lucide="printer" class="detail-title-icon"></i>簽收單產生</h2>
-          <p class="page-desc">可勾選一個或多個部門，產生同一張簽收單。列印後可標記為已列印，避免重複列印。</p>
+          <p class="page-desc">可勾選一個或多個部門，產生同一張公司版簽收單。確認資料後下載 Word，完成列印後再標記為已列印。</p>
           <div class="sheet-toolbar">
             <label><span>收件日期</span><input type="date" id="sheetDate" onchange="renderSheetPage()"></label>
             <label class="checkbox-line"><input type="checkbox" id="sheetOnlyUnprinted" checked onchange="renderSheetPage()">只顯示未列印郵件</label>
@@ -122,7 +122,8 @@
           <div class="print-action-row">
             <h2 class="detail-title"><i data-lucide="file-text" class="detail-title-icon"></i>簽收單預覽</h2>
             <div>
-              <button class="btn btn-gray" onclick="window.print()">列印</button>
+              <button class="btn btn-gray" onclick="window.print()">列印簡易預覽</button>
+              <button class="btn btn-primary" onclick="downloadCompanySignSheet()">下載公司版 Word</button>
               <button class="btn btn-green" onclick="markSelectedAsPrinted()">標記為已列印</button>
             </div>
           </div>
@@ -271,6 +272,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.0"></script>
+<script src="./app.js?v=1.7.1"></script>
 </body>
 </html>
