@@ -34,6 +34,19 @@
 .admin-wide-panel .form-grid.compact{grid-template-columns:minmax(320px,1fr) minmax(160px,220px)}
 .admin-wide-panel>.form-group{max-width:none}
 
+.company-sign-doc{width:min(100%,820px);margin:0 auto;padding:20px 24px 40px;color:#111;background:#fff;font-family:"標楷體","DFKai-SB","Noto Serif TC",serif}
+.company-sign-logo{text-align:center;margin:0 auto 10px}
+.company-sign-logo img{display:block;max-width:390px;width:55%;height:auto;margin:0 auto}
+.company-sign-doc h1{text-align:center;font-size:30px;font-weight:700;letter-spacing:5px;margin:8px 0 22px}
+.company-sign-meta{display:flex;justify-content:space-between;align-items:flex-end;font-size:20px;margin:0 8px 12px}
+.company-sign-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.company-sign-table th,.company-sign-table td{border:1px solid #111;background:#fff;color:#111;padding:10px 8px;text-align:center;font-size:20px;height:54px}
+.company-sign-table th{font-size:22px;font-weight:700}
+.company-sign-table th:nth-child(1){width:25%}
+.company-sign-table th:nth-child(2){width:44%}
+.company-sign-table th:nth-child(3){width:18%}
+.company-sign-table th:nth-child(4){width:13%}
+
 .outgoing-wide-panel{width:100%;max-width:none}
 .outgoing-header-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .outgoing-entry-wrap{margin-top:8px}
@@ -73,12 +86,19 @@
 .postal-note{font-size:7pt;margin-top:3mm;border-top:1px dashed #777;padding-top:2mm}
 
 @media(max-width:720px){
+  .company-sign-doc{padding:12px;min-width:680px}
+  .sign-sheet-preview{overflow:auto}
   .outgoing-header-grid{grid-template-columns:1fr}
   .outgoing-entry-table{min-width:1100px}
   .outgoing-entry-actions{align-items:stretch;gap:10px;flex-direction:column}
 }
 
 @media print{
+  .company-sign-doc{width:100%;max-width:none;padding:0}
+  .company-sign-logo img{width:46%}
+  .company-sign-doc h1{font-size:22pt}
+  .company-sign-meta{font-size:14pt}
+  .company-sign-table th,.company-sign-table td{font-size:14pt;height:13mm;padding:2mm}
   body.printing-outgoing .login-page,
   body.printing-outgoing .sidebar,
   body.printing-outgoing #outgoingPage>.panel{display:none!important}
