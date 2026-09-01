@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.13">
+<link rel="stylesheet" href="./styles.css?v=1.7.14">
 </head>
 <body>
 
@@ -85,7 +85,7 @@
           <div class="kpi-card"><div class="kpi-title">本月掛號 / 限掛</div><div class="kpi-value" id="kpiRegistered">0</div><div class="kpi-sub">掛號與限掛合計</div></div>
         </div>
         <div class="panel outgoing-wide-panel">
-          <div class="print-action-row">
+          <div class="print-action-row page-action-header">
             <div>
               <h2 class="detail-title"><i data-lucide="square-pen" class="detail-title-icon"></i>郵件登錄</h2>
               <p class="page-desc">可一次輸入多筆郵件。填寫寄件人與收件人的列才會建檔。</p>
@@ -190,15 +190,15 @@
 
       <section id="outgoingPage" class="page hidden">
         <div class="panel outgoing-wide-panel">
-          <div class="print-action-row">
+          <div class="print-action-row page-action-header">
             <div>
               <h2 class="detail-title"><i data-lucide="send" class="detail-title-icon"></i>大宗掛號寄件</h2>
               <p class="page-desc">預設提供 20 列快速登打；收件人姓名與寄達地名皆有填寫的列才會建檔。</p>
             </div>
             <div>
               <button class="btn btn-gray" onclick="startNewOutgoingForm()"><i data-lucide="rotate-ccw"></i>清空重填</button>
-              <button class="btn btn-green" onclick="saveOutgoingBatch()"><i data-lucide="save"></i>儲存寄件資料</button>
-              <button class="btn btn-primary" onclick="downloadOutgoingExcel()"><i data-lucide="file-spreadsheet"></i>下載原版 Excel</button>
+              <button class="btn btn-green" onclick="saveOutgoingBatch()"><i data-lucide="save"></i>儲存資料</button>
+              <button class="btn btn-primary" onclick="downloadOutgoingExcel()"><i data-lucide="file-spreadsheet"></i>下載 Excel</button>
             </div>
           </div>
           <input type="hidden" id="outgoingBatchId">
@@ -208,7 +208,7 @@
               <span>僅儲存在目前瀏覽器</span>
             </div>
             <select id="outgoingSenderProfile" onchange="applyOutgoingSenderProfile(this.value)"><option value="">選擇寄件人範本</option></select>
-            <button class="btn btn-gray" type="button" onclick="saveOutgoingSenderProfile()">儲存目前資料為範本</button>
+            <button class="btn btn-gray" type="button" onclick="saveOutgoingSenderProfile()">儲存為範本</button>
             <button class="btn btn-red" type="button" id="deleteSenderProfileButton" onclick="deleteOutgoingSenderProfile()" disabled>刪除範本</button>
           </div>
           <div class="form-grid outgoing-header-grid">
@@ -331,6 +331,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.13"></script>
+<script src="./app.js?v=1.7.14"></script>
 </body>
 </html>

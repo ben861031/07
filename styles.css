@@ -311,3 +311,28 @@ button,input,select,textarea{font:inherit}
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* v1.7.14：按鈕尺寸與操作層級統一 */
+.btn{height:44px;min-height:44px;padding:0 16px;border-radius:12px;font-size:14px;line-height:1.2;white-space:nowrap}
+.btn.small{height:44px;padding:0 16px}
+.btn:disabled{opacity:1!important;background:#e2e8f0!important;color:#94a3b8!important;border-color:#e2e8f0!important;box-shadow:none!important;cursor:not-allowed}
+.btn:disabled:hover{transform:none}
+.incoming-row-actions .row-action-btn{height:40px;min-height:40px;padding:0 13px;font-size:13px}
+.sheet-generate-btn{height:48px}
+.logout-menu-btn{min-height:44px;padding:0 14px;font-size:14px;white-space:nowrap}
+.filter-advanced-btn,.filter-reset-btn{white-space:nowrap}
+.print-action-row{flex-wrap:wrap}
+.page-action-header{align-items:flex-start}
+.page-action-header>div:first-child{display:flex;flex:1 1 460px;min-width:320px;align-items:baseline;gap:14px;flex-wrap:wrap}
+.page-action-header>div:first-child .detail-title{flex:0 0 auto;margin:0;white-space:nowrap}
+.page-action-header>div:first-child .page-desc{flex:1 1 280px;min-width:240px;margin:0}
+.page-action-header>div:last-child{display:flex;flex:0 0 auto;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-left:auto}
+.sender-profile-bar .btn{height:44px;min-height:44px}
+
+@media(max-width:720px){
+  .page-action-header>div:first-child{min-width:0;flex-basis:100%;align-items:flex-start;flex-direction:column;gap:4px}
+  .page-action-header>div:first-child .page-desc{min-width:0}
+  .page-action-header>div:last-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin-left:0}
+  .page-action-header>div:last-child>.btn{width:100%}
+  .page-action-header>div:last-child>.btn:last-child:nth-child(odd){grid-column:1/-1}
+}
