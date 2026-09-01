@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.6">
+<link rel="stylesheet" href="./styles.css?v=1.7.7">
 </head>
 <body>
 
@@ -36,7 +36,7 @@
       <div class="menu-item active" data-tooltip="郵件登錄" onclick="showPage('registerPage',this)">
         <i data-lucide="square-pen" class="menu-icon"></i><span>郵件登錄</span>
       </div>
-      <div class="menu-item" data-tooltip="簽收單產生" onclick="showPage('sheetPage',this); renderSheetPage();">
+      <div class="menu-item" data-tooltip="簽收單產生" onclick="openSheetPage(this)">
         <i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span>
       </div>
       <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="showPage('outgoingPage',this); prepareOutgoingPage();">
@@ -104,7 +104,7 @@
             </div>
           </div>
           <div class="outgoing-table-toolbar">
-            <span>可使用方向鍵或 Enter 快速移動欄位</span>
+            <span>方向鍵／Enter 移動欄位；收件部門選定後會顯示近期收件人</span>
           </div>
           <div class="table-wrap outgoing-entry-wrap">
             <table class="outgoing-entry-table incoming-entry-table">
@@ -115,8 +115,9 @@
                   <th style="width:16%">掛號 / 單號</th>
                   <th style="width:20%">寄件人 / 寄件單位</th>
                   <th style="width:16%">收件部門</th>
-                  <th style="width:16%">收件人</th>
-                  <th style="width:auto">備註</th>
+                   <th style="width:16%">收件人</th>
+                   <th style="width:auto">備註</th>
+                   <th style="width:190px">列操作</th>
                 </tr>
               </thead>
               <tbody id="incomingEntryRows"></tbody>
@@ -130,28 +131,50 @@
 
       <section id="sheetPage" class="page hidden">
         <div class="panel">
-          <h2 class="detail-title"><i data-lucide="printer" class="detail-title-icon"></i>簽收單產生</h2>
-          <p class="page-desc">可勾選一個或多個部門，產生同一張公司版簽收單。確認資料後下載 Word，完成列印後再標記為已列印。</p>
-          <div class="sheet-toolbar">
-            <label><span>收件日期</span><input type="date" id="sheetDate" onchange="renderSheetPage()"></label>
-            <label class="checkbox-line"><input type="checkbox" id="sheetOnlyUnprinted" checked onchange="renderSheetPage()">只顯示未列印郵件</label>
-            <button class="btn btn-gray" onclick="selectAllSheetDepartments(true)">全選</button>
-            <button class="btn btn-gray" onclick="selectAllSheetDepartments(false)">清空</button>
-            <button class="btn btn-primary" onclick="generateSignSheet()">產生簽收單</button>
+          <div class="sheet-page-heading">
+            <div>
+              <h2 class="detail-title"><i data-lucide="printer" class="detail-title-icon"></i>簽收單產生</h2>
+              <p class="page-desc">依照下方三個步驟操作，列印完成後再標記為已列印。</p>
+            </div>
+            <div class="sheet-steps" aria-label="簽收單操作步驟">
+              <span><b>1</b>選日期</span><span><b>2</b>選部門</span><span><b>3</b>產生預覽</span>
+            </div>
           </div>
-          <div id="sheetDeptList" class="dept-check-grid"></div>
+          <div class="sheet-control-card">
+            <div class="sheet-control-row">
+              <label class="sheet-date-field"><span><b>步驟 1</b> 收件日期</span><input type="date" id="sheetDate" onchange="renderSheetPage()"></label>
+              <label class="checkbox-line sheet-unprinted-toggle"><input type="checkbox" id="sheetOnlyUnprinted" checked onchange="renderSheetPage()"><span><strong>只顯示未列印郵件</strong><small>一般列印建議保持勾選</small></span></label>
+            </div>
+            <div class="sheet-dept-heading">
+              <div><b>步驟 2</b><strong>選擇要列印的部門</strong><span>可同時選擇多個部門</span></div>
+              <div><button class="btn btn-gray" onclick="selectAllSheetDepartments(true)">全部選取</button><button class="btn btn-gray" onclick="selectAllSheetDepartments(false)">清除選取</button></div>
+            </div>
+            <div id="sheetDeptList" class="dept-check-grid"></div>
+            <div class="sheet-generate-row"><button class="btn btn-primary sheet-generate-btn" onclick="generateSignSheet()"><i data-lucide="file-check-2"></i><span><strong>步驟 3　產生簽收單預覽</strong><small>先確認內容，再下載 Word 或直接列印</small></span></button></div>
+          </div>
         </div>
 
         <div class="panel" id="sheetPreviewPanel">
+          <div id="sheetModeNotice" class="reprint-mode-notice" hidden></div>
           <div class="print-action-row">
-            <h2 class="detail-title"><i data-lucide="file-text" class="detail-title-icon"></i>公司版簽收單預覽</h2>
-            <div>
-              <button class="btn btn-gray" onclick="window.print()">列印公司版預覽</button>
-              <button class="btn btn-primary" onclick="downloadCompanySignSheet()">下載公司版 Word</button>
-              <button class="btn btn-green" onclick="markSelectedAsPrinted()">標記為已列印</button>
+            <div><h2 class="detail-title"><i data-lucide="file-text" class="detail-title-icon"></i>簽收單預覽與輸出</h2><p class="page-desc">請先核對名單；完成實際列印後，再執行最後的標記。</p></div>
+            <div class="sheet-output-actions">
+              <button class="btn btn-gray" onclick="printCompanySignSheet()"><i data-lucide="printer"></i>直接列印</button>
+              <button class="btn btn-primary" onclick="downloadCompanySignSheet()"><i data-lucide="file-down"></i>下載 Word</button>
+              <button class="btn btn-green" id="markSheetPrintedButton" onclick="markSelectedAsPrinted()"><i data-lucide="badge-check"></i>列印完成，標記已列印</button>
             </div>
           </div>
           <div id="signSheetPreview" class="sign-sheet-preview empty-preview">請先勾選部門並產生簽收單。</div>
+        </div>
+
+        <div class="panel sheet-batch-panel">
+          <div class="print-action-row">
+            <div>
+              <h2 class="detail-title"><i data-lucide="archive-restore" class="detail-title-icon"></i>列印批次紀錄</h2>
+              <p class="page-desc">可開啟原列印批次補印；新版批次會保留列印當時的資料快照。</p>
+            </div>
+          </div>
+          <div id="printBatchHistory" class="maintenance-list"></div>
         </div>
       </section>
 
@@ -169,6 +192,15 @@
             </div>
           </div>
           <input type="hidden" id="outgoingBatchId">
+          <div class="sender-profile-bar">
+            <div>
+              <label for="outgoingSenderProfile">寄件人範本</label>
+              <span>僅儲存在目前瀏覽器</span>
+            </div>
+            <select id="outgoingSenderProfile" onchange="applyOutgoingSenderProfile(this.value)"><option value="">選擇寄件人範本</option></select>
+            <button class="btn btn-gray" type="button" onclick="saveOutgoingSenderProfile()">儲存目前資料為範本</button>
+            <button class="btn btn-red" type="button" id="deleteSenderProfileButton" onclick="deleteOutgoingSenderProfile()" disabled>刪除範本</button>
+          </div>
           <div class="form-grid outgoing-header-grid">
             <div class="form-group"><label>交寄日期</label><input type="date" id="outgoingDate"></div>
             <div class="form-group"><label>郵件種類</label><select id="outgoingType"><option>掛號函件</option><option>限時掛號</option><option>快捷郵件</option></select></div>
@@ -222,6 +254,10 @@
               </div>
             </div>
           </div>
+          <div id="reprintActions" class="reprint-actions">
+            <div><strong>補印選取</strong><span id="reprintSelectionCount">已選 0 筆</span></div>
+            <div><button class="btn btn-gray" onclick="clearReprintSelection()">清除選取</button><button class="btn btn-primary" id="reprintSelectedButton" onclick="reprintSelectedRecords()" disabled>補印已選</button></div>
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>收件日期</th><th>類型</th><th>掛號 / 單號</th><th>寄件人</th><th>部門</th><th>收件人</th><th>狀態</th><th>操作</th></tr></thead>
@@ -269,7 +305,7 @@
       <section id="auditLogPage" class="page hidden">
         <div class="panel">
           <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>操作紀錄 <span id="auditCount">(0筆)</span></h2>
-          <div class="audit-toolbar"><input type="text" id="auditSearch" placeholder="搜尋操作者、Email、操作內容"><select id="auditActionFilter"><option value="">全部操作</option><option value="create">新增</option><option value="update">修改</option><option value="delete">刪除</option><option value="print">列印</option><option value="permission">權限異動</option></select><button class="btn btn-gray" onclick="resetAuditFilter()">重設</button></div>
+            <div class="audit-toolbar"><input type="text" id="auditSearch" placeholder="搜尋操作者、Email、操作內容"><select id="auditActionFilter"><option value="">全部操作</option><option value="create">新增</option><option value="update">修改</option><option value="delete">刪除</option><option value="print">列印</option><option value="reprint">補印</option><option value="permission">權限異動</option></select><button class="btn btn-gray" onclick="resetAuditFilter()">重設</button></div>
           <div class="table-wrap"><table><thead><tr><th>時間</th><th>操作者</th><th>角色</th><th>操作</th><th>類別</th><th>對象</th><th>內容</th></tr></thead><tbody id="auditLogTable"></tbody></table></div>
           <div class="pagination-row"><div>每頁顯示：<select id="auditPageSize" onchange="changeAuditPageSize()"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div><div id="auditPagination"></div></div>
         </div>
@@ -286,6 +322,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.6"></script>
+<script src="./app.js?v=1.7.7"></script>
 </body>
 </html>
