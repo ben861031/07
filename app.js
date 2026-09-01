@@ -86,11 +86,11 @@ async function loadOutgoingBatches(){const snap=await getDocs(collection(db,"out
 
 function incomingRowHtml(item={}, index=0){
   const types = currentMailTypes();
-  const typeOpts = types.map(t=>`<option value="${esc(t)}" ${item.mailType===t?'selected':''}>${esc(t)}</option>`).join("");
+  const typeOpts = types.map((t,i)=>`<option value="${esc(t)}" ${item.mailType===t?'selected':''}>${i+1}. ${esc(t)}</option>`).join("");
   const typeHtml = item.mailType && !types.includes(item.mailType)
     ? `<option value="${esc(item.mailType)}" selected>${esc(item.mailType)} (歷史)</option>` + typeOpts
     : typeOpts;
-  const deptOpts = departmentList.map(d=>`<option value="${esc(d.name)}" ${item.department===d.name?'selected':''}>${esc(d.name)}</option>`).join("");
+  const deptOpts = departmentList.map((d,i)=>`<option value="${esc(d.name)}" ${item.department===d.name?'selected':''}>${i+1}. ${esc(d.name)}</option>`).join("");
   const deptHtml = `<option value="">請選擇</option>` + deptOpts;
   return `<tr class="outgoing-entry-row incoming-entry-row" data-id="${esc(item.id||'')}">
     <td class="incoming-seq" style="text-align:center">${index+1}</td>
@@ -104,7 +104,7 @@ function incomingRowHtml(item={}, index=0){
 }
 function renderIncomingRows(items=[]){
   const rows=[...items];
-  while(rows.length<20) rows.push({mailType: currentMailTypes()[0]||"掛號"});
+  if(rows.length===0) rows.push({mailType: currentMailTypes()[0]||"掛號"});
   $("incomingEntryRows").innerHTML=rows.map((item,i)=>incomingRowHtml(item,i)).join("");
   bindIncomingGrid();
   refreshIncomingRows();
@@ -121,7 +121,7 @@ function refreshIncomingRows(){
     row.classList.toggle("is-complete", Boolean(isComplete));
     if(isComplete) count++;
   });
-  $("incomingItemCount").textContent=`有效資料 ${count} 件／共 ${rows.length} 列`;
+  $("incomingItemCount").textContent=`有效資料 ${count} 件`;
 }
 function bindIncomingGrid(){
   const body=$("incomingEntryRows");
@@ -135,7 +135,7 @@ function bindIncomingGrid(){
   }
 }
 function moveIncomingCell(input,key){
-  const rows=[...document.querySelectorAll(".incoming-entry-row")];
+  let rows=[...document.querySelectorAll(".incoming-entry-row")];
   const rowIndex=rows.indexOf(input.closest("tr"));
   const fields=["mailType","trackingNo","sender","department","receiver","remark"];
   const fieldIndex=fields.indexOf(input.dataset.field);
@@ -147,6 +147,19 @@ function moveIncomingCell(input,key){
   if(key==="ArrowRight")nextField++;
   if(nextField<0){nextRow--;nextField=fields.length-1}
   if(nextField>=fields.length){nextRow++;nextField=0}
+  
+  if(nextRow>=rows.length && (key==="ArrowDown"||key==="Enter"||key==="ArrowRight")){
+    const lastRow = rows[rows.length-1];
+    const prevType = lastRow.querySelector('[data-field="mailType"]').value;
+    const prevDept = lastRow.querySelector('[data-field="department"]').value;
+    $("incomingEntryRows").insertAdjacentHTML("beforeend", incomingRowHtml({
+      mailType: prevType,
+      department: prevDept
+    }, rows.length));
+    rows=[...document.querySelectorAll(".incoming-entry-row")];
+    refreshIncomingRows();
+  }
+  
   if(nextRow<0||nextRow>=rows.length)return;
   const target=rows[nextRow].querySelector(`[data-field="${fields[nextField]}"]`);
   if(target){target.focus();if(target.select&&target.tagName!=="SELECT")target.select()}
