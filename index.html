@@ -84,22 +84,46 @@
           <div class="kpi-card"><div class="kpi-title">本月收件</div><div class="kpi-value" id="kpiMonth">0</div><div class="kpi-sub">本月累計</div></div>
           <div class="kpi-card"><div class="kpi-title">本月掛號 / 限掛</div><div class="kpi-value" id="kpiRegistered">0</div><div class="kpi-sub">掛號與限掛合計</div></div>
         </div>
-        <div class="panel">
-          <h2 class="detail-title"><i data-lucide="square-pen" class="detail-title-icon"></i>郵件登錄</h2>
-          <p class="page-desc">收到郵件後，先登錄資料；之後可依部門產生紙本簽收單。</p>
-          <input type="hidden" id="mailId">
-          <div class="form-grid register-form-grid">
-            <div class="form-group"><label>收件日期</label><input type="date" id="receiveDate"></div>
-            <div class="form-group"><label>郵件類型</label><select id="mailType"></select></div>
-            <div class="form-group"><label>掛號 / 單號</label><input type="text" id="trackingNo" placeholder="平信可留空"></div>
-            <div class="form-group"><label>寄件人 / 寄件單位</label><input type="text" id="sender"></div>
-            <div class="form-group"><label>收件部門</label><select id="department"></select></div>
-            <div class="form-group"><label>收件人</label><input type="text" id="receiver"></div>
-            <div class="form-group span-2"><label>備註</label><textarea id="remark" rows="3"></textarea></div>
+        <div class="panel outgoing-wide-panel">
+          <div class="print-action-row">
+            <div>
+              <h2 class="detail-title"><i data-lucide="square-pen" class="detail-title-icon"></i>郵件登錄</h2>
+              <p class="page-desc">可一次輸入多筆郵件。填寫寄件人與收件人的列才會建檔。</p>
+            </div>
+            <div>
+              <button class="btn btn-gray" onclick="resetMailForm()">清空重填</button>
+              <button class="btn btn-primary" onclick="saveMailRecord()">儲存郵件</button>
+            </div>
           </div>
-          <div class="form-actions">
-            <button class="btn btn-gray" onclick="resetMailForm()">清空</button>
-            <button class="btn btn-primary" onclick="saveMailRecord()">儲存郵件</button>
+          <input type="hidden" id="mailId"> <!-- Used when editing single mail -->
+          <div class="form-grid incoming-header-grid">
+            <div class="form-group"><label>收件日期</label><input type="date" id="receiveDate"></div>
+            <div class="form-group">
+              <span style="font-size:13px;color:#64748b;font-weight:800;display:block;margin-bottom:8px;">快速設定</span>
+              <button class="btn btn-gray" onclick="applyIncomingDefaults()">將第一列的類型與部門套用到所有列</button>
+            </div>
+          </div>
+          <div class="outgoing-table-toolbar">
+            <span>可使用方向鍵或 Enter 快速移動欄位</span>
+          </div>
+          <div class="table-wrap outgoing-entry-wrap">
+            <table class="outgoing-entry-table incoming-entry-table">
+              <thead>
+                <tr>
+                  <th style="width:42px">#</th>
+                  <th style="width:14%">郵件類型</th>
+                  <th style="width:16%">掛號 / 單號</th>
+                  <th style="width:20%">寄件人 / 寄件單位</th>
+                  <th style="width:16%">收件部門</th>
+                  <th style="width:16%">收件人</th>
+                  <th style="width:auto">備註</th>
+                </tr>
+              </thead>
+              <tbody id="incomingEntryRows"></tbody>
+            </table>
+          </div>
+          <div class="outgoing-entry-actions">
+            <span id="incomingItemCount">有效資料 0 件／共 20 列</span>
           </div>
         </div>
       </section>

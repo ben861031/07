@@ -84,13 +84,141 @@ async function loadUsers(){const snap=await getDocs(collection(db,"users"));user
 async function loadMailRecords(){const snap=await getDocs(collection(db,"mailRecords"));mailRecords=[];snap.forEach(s=>mailRecords.push({id:s.id,...s.data()}));mailRecords.sort((a,b)=>(getTime(b.createdTime)||Date.parse(b.receiveDate||0))-(getTime(a.createdTime)||Date.parse(a.receiveDate||0)));renderDashboard();renderMailTable();renderSheetPage();}
 async function loadOutgoingBatches(){const snap=await getDocs(collection(db,"outgoingMailBatches"));outgoingBatches=[];snap.forEach(s=>outgoingBatches.push({id:s.id,...s.data()}));outgoingBatches.sort((a,b)=>(getTime(b.createdTime)||Date.parse(b.sendDate||0))-(getTime(a.createdTime)||Date.parse(a.sendDate||0)));renderOutgoingBatchList();renderMailTable();}
 
-function resetMailForm(){["mailId","trackingNo","sender","receiver","remark"].forEach(id=>$(id).value="");$("receiveDate").value=todayStr();const types=currentMailTypes();$("mailType").value=types.includes("掛號")?"掛號":(types[0]||"");$("department").value="";}
-window.resetMailForm=resetMailForm;
-function prepareNextMailEntry(data){["mailId","trackingNo","sender","receiver","remark"].forEach(id=>$(id).value="");$("receiveDate").value=data.receiveDate;$("mailType").value=data.mailType;$("department").value=data.department;$("trackingNo").focus()}
-async function saveMailRecord(){const id=$("mailId").value;const data={receiveDate:$("receiveDate").value,mailType:$("mailType").value,trackingNo:$("trackingNo").value.trim(),sender:$("sender").value.trim(),department:$("department").value,receiver:$("receiver").value.trim(),remark:$("remark").value.trim()};if(!data.receiveDate||!data.mailType||!data.sender||!data.department||!data.receiver){alert("請填寫收件日期、郵件類型、寄件人、收件部門、收件人");return}if(id){const before=mailRecords.find(r=>r.id===id);await updateDoc(doc(db,"mailRecords",id),data);await writeAuditLog({action:"update",category:"mailRecord",targetId:id,targetLabel:mailLabel(data),before,after:{...before,...data}});alert("修改成功");resetMailForm()}else{const ref=await addDoc(collection(db,"mailRecords"),{...data,printed:false,createdBy:currentUser,createdByEmail:currentUserEmail,createdTime:new Date()});await writeAuditLog({action:"create",category:"mailRecord",targetId:ref.id,targetLabel:mailLabel(data),after:{...data,printed:false}});alert("登錄成功，可繼續登錄同部門郵件");prepareNextMailEntry(data)}await loadMailRecords();}
-window.saveMailRecord=saveMailRecord;
-function editMail(id){const r=mailRecords.find(x=>x.id===id);if(!r)return;showPage("registerPage",document.querySelector('[onclick*=registerPage]'));$("mailId").value=id;$("receiveDate").value=r.receiveDate||todayStr();if(r.mailType&&!currentMailTypes().includes(r.mailType))$("mailType").insertAdjacentHTML("beforeend",`<option value="${esc(r.mailType)}">${esc(r.mailType)}（歷史類型）</option>`);$("mailType").value=r.mailType||currentMailTypes()[0]||"";$("trackingNo").value=r.trackingNo||"";$("sender").value=r.sender||"";$("department").value=r.department||"";$("receiver").value=r.receiver||"";$("remark").value=r.remark||"";}
-window.editMail=editMail;
+function incomingRowHtml(item={}, index=0){
+  const types = currentMailTypes();
+  const typeOpts = types.map(t=>`<option value="${esc(t)}" ${item.mailType===t?'selected':''}>${esc(t)}</option>`).join("");
+  const typeHtml = item.mailType && !types.includes(item.mailType)
+    ? `<option value="${esc(item.mailType)}" selected>${esc(item.mailType)} (歷史)</option>` + typeOpts
+    : typeOpts;
+  const deptOpts = departmentList.map(d=>`<option value="${esc(d.name)}" ${item.department===d.name?'selected':''}>${esc(d.name)}</option>`).join("");
+  const deptHtml = `<option value="">請選擇</option>` + deptOpts;
+  return `<tr class="outgoing-entry-row incoming-entry-row" data-id="${esc(item.id||'')}">
+    <td class="incoming-seq" style="text-align:center">${index+1}</td>
+    <td><select data-field="mailType" style="width:100%;border:1px solid #dbe4f0;border-radius:8px;padding:8px;font-size:14px;background:#fff">${typeHtml}</select></td>
+    <td><input data-field="trackingNo" value="${esc(item.trackingNo||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
+    <td><input data-field="sender" value="${esc(item.sender||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
+    <td><select data-field="department" style="width:100%;border:1px solid #dbe4f0;border-radius:8px;padding:8px;font-size:14px;background:#fff">${deptHtml}</select></td>
+    <td><input data-field="receiver" value="${esc(item.receiver||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
+    <td><input data-field="remark" value="${esc(item.remark||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
+  </tr>`;
+}
+function renderIncomingRows(items=[]){
+  const rows=[...items];
+  while(rows.length<20) rows.push({mailType: currentMailTypes()[0]||"掛號"});
+  $("incomingEntryRows").innerHTML=rows.map((item,i)=>incomingRowHtml(item,i)).join("");
+  bindIncomingGrid();
+  refreshIncomingRows();
+}
+function refreshIncomingRows(){
+  const rows=[...document.querySelectorAll(".incoming-entry-row")];
+  let count=0;
+  rows.forEach((row,i)=>{
+    row.querySelector(".incoming-seq").textContent=i+1;
+    const sender=row.querySelector('[data-field="sender"]').value.trim();
+    const receiver=row.querySelector('[data-field="receiver"]').value.trim();
+    const dept=row.querySelector('[data-field="department"]').value;
+    const isComplete = sender && receiver && dept;
+    row.classList.toggle("is-complete", Boolean(isComplete));
+    if(isComplete) count++;
+  });
+  $("incomingItemCount").textContent=`有效資料 ${count} 件／共 ${rows.length} 列`;
+}
+function bindIncomingGrid(){
+  const body=$("incomingEntryRows");
+  body.oninput=refreshIncomingRows;
+  body.onchange=refreshIncomingRows;
+  body.onkeydown=event=>{
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(event.key)){
+      event.preventDefault();
+      moveIncomingCell(event.target,event.key);
+    }
+  }
+}
+function moveIncomingCell(input,key){
+  const rows=[...document.querySelectorAll(".incoming-entry-row")];
+  const rowIndex=rows.indexOf(input.closest("tr"));
+  const fields=["mailType","trackingNo","sender","department","receiver","remark"];
+  const fieldIndex=fields.indexOf(input.dataset.field);
+  if(rowIndex<0||fieldIndex<0)return;
+  let nextRow=rowIndex,nextField=fieldIndex;
+  if(key==="ArrowUp")nextRow--;
+  if(key==="ArrowDown"||key==="Enter")nextRow++;
+  if(key==="ArrowLeft")nextField--;
+  if(key==="ArrowRight")nextField++;
+  if(nextField<0){nextRow--;nextField=fields.length-1}
+  if(nextField>=fields.length){nextRow++;nextField=0}
+  if(nextRow<0||nextRow>=rows.length)return;
+  const target=rows[nextRow].querySelector(`[data-field="${fields[nextField]}"]`);
+  if(target){target.focus();if(target.select&&target.tagName!=="SELECT")target.select()}
+}
+function applyIncomingDefaults(){
+  const rows=[...document.querySelectorAll(".incoming-entry-row")];
+  const firstType=rows[0].querySelector('[data-field="mailType"]').value;
+  const firstDept=rows[0].querySelector('[data-field="department"]').value;
+  for(let i=1;i<rows.length;i++){
+    rows[i].querySelector('[data-field="mailType"]').value=firstType;
+    rows[i].querySelector('[data-field="department"]').value=firstDept;
+  }
+  refreshIncomingRows();
+} window.applyIncomingDefaults=applyIncomingDefaults;
+
+function resetMailForm(){
+  $("receiveDate").value=todayStr();
+  renderIncomingRows([]);
+} window.resetMailForm=resetMailForm;
+
+function getIncomingItems(){
+  return [...document.querySelectorAll(".incoming-entry-row")].map(row=>{
+    const get=name=>row.querySelector(`[data-field="${name}"]`).value.trim();
+    return {
+      id: row.dataset.id||"",
+      mailType: get("mailType"),
+      trackingNo: get("trackingNo"),
+      sender: get("sender"),
+      department: get("department"),
+      receiver: get("receiver"),
+      remark: get("remark")
+    }
+  }).filter(item=>item.sender&&item.receiver&&item.department);
+}
+
+async function saveMailRecord(){
+  const date=$("receiveDate").value;
+  if(!date){alert("請填寫收件日期");return}
+  const items=getIncomingItems();
+  if(!items.length){alert("請至少完整填寫一筆郵件資料（需包含寄件人、收件部門、收件人）");return}
+  
+  try{
+    let added=0, updated=0;
+    for(const item of items){
+      const data={receiveDate:date, mailType:item.mailType, trackingNo:item.trackingNo, sender:item.sender, department:item.department, receiver:item.receiver, remark:item.remark};
+      if(item.id){
+        const before=mailRecords.find(r=>r.id===item.id);
+        await updateDoc(doc(db,"mailRecords",item.id),data);
+        await writeAuditLog({action:"update",category:"mailRecord",targetId:item.id,targetLabel:mailLabel(data),before,after:{...before,...data}});
+        updated++;
+      }else{
+        const ref=await addDoc(collection(db,"mailRecords"),{...data,printed:false,createdBy:currentUser,createdByEmail:currentUserEmail,createdTime:new Date()});
+        await writeAuditLog({action:"create",category:"mailRecord",targetId:ref.id,targetLabel:mailLabel(data),after:{...data,printed:false}});
+        added++;
+      }
+    }
+    alert(`儲存成功！共新增 ${added} 筆，更新 ${updated} 筆郵件。`);
+    resetMailForm();
+    await loadMailRecords();
+  }catch(e){
+    console.error(e);
+    alert("儲存失敗：" + (e.message||e));
+  }
+} window.saveMailRecord=saveMailRecord;
+
+function editMail(id){
+  const r=mailRecords.find(x=>x.id===id);
+  if(!r)return;
+  showPage("registerPage",document.querySelector('[onclick*=registerPage]'));
+  $("receiveDate").value=r.receiveDate||todayStr();
+  renderIncomingRows([r]);
+} window.editMail=editMail;
 async function deleteMail(id){const r=mailRecords.find(x=>x.id===id);if(!confirm("確定刪除此筆郵件資料？"))return;await deleteDoc(doc(db,"mailRecords",id));await writeAuditLog({action:"delete",category:"mailRecord",targetId:id,targetLabel:mailLabel(r),before:r});await loadMailRecords();}
 window.deleteMail=deleteMail;
 async function togglePrinted(id,printed){const r=mailRecords.find(x=>x.id===id);await updateDoc(doc(db,"mailRecords",id),{printed:!printed,printedAt:!printed?new Date():null,printedBy:!printed?currentUser:""});await writeAuditLog({action:"update",category:"mailRecord",targetId:id,targetLabel:mailLabel(r),before:r,after:{...r,printed:!printed}});await loadMailRecords();}
@@ -116,9 +244,16 @@ window.renderSheetPage=renderSheetPage;
 function selectAllSheetDepartments(flag){document.querySelectorAll(".sheet-dept-check").forEach(c=>c.checked=flag)} window.selectAllSheetDepartments=selectAllSheetDepartments;
 function generateSignSheet(){const depts=[...document.querySelectorAll(".sheet-dept-check:checked")].map(c=>c.value);if(!depts.length){alert("請先選擇至少一個部門");return}const date=$("sheetDate").value;const only=$("sheetOnlyUnprinted").checked;selectedSheetRecords=mailRecords.filter(r=>(!date||r.receiveDate===date)&&depts.includes(r.department)&&(!only||!r.printed));if(!selectedSheetRecords.length){alert("選取部門沒有可列印郵件");return}$("signSheetPreview").classList.remove("empty-preview");$("signSheetPreview").innerHTML=buildSignSheetHtml(selectedSheetRecords,date);}
 window.generateSignSheet=generateSignSheet;
-function buildSignSheetHtml(rows,date){const departments=[...new Set(rows.map(row=>row.department).filter(Boolean))],parts=(date||todayStr()).split("-").map(Number),rocDateText=`${parts[0]-1911}年${String(parts[1]).padStart(2,"0")}月${String(parts[2]).padStart(2,"0")}日`,body=rows.map(row=>`<tr><td>${esc(row.trackingNo||row.mailType||"")}</td><td>${esc(row.sender||"")}</td><td>${esc(row.receiver||"")}</td><td></td></tr>`).join("");return `<div class="company-sign-doc"><div class="company-sign-logo"><img src="./公司Logo.png" alt="環興科技股份有限公司"></div><h1>信件簽收單</h1><div class="company-sign-meta"><span>部門：${esc(departments.join("、"))}</span><span>${esc(rocDateText)}</span></div><table class="company-sign-table"><thead><tr><th>掛號編號</th><th>寄件者</th><th>收件者</th><th>簽收</th></tr></thead><tbody>${body}</tbody></table></div>`}
+function formatTrackingNo(type, no){
+  if(!no) return "";
+  if(type && (type.includes("掛號") || type.includes("限掛") || type.includes("快捷"))) {
+    return no.substring(0, 6);
+  }
+  return no;
+}
+function buildSignSheetHtml(rows,date){const departments=[...new Set(rows.map(row=>row.department).filter(Boolean))],parts=(date||todayStr()).split("-").map(Number),rocDateText=`${parts[0]-1911}年${String(parts[1]).padStart(2,"0")}月${String(parts[2]).padStart(2,"0")}日`,body=rows.map(row=>`<tr><td>${esc(formatTrackingNo(row.mailType, row.trackingNo)||row.mailType||"")}</td><td>${esc(row.sender||"")}</td><td>${esc(row.receiver||"")}</td><td></td></tr>`).join("");return `<div class="company-sign-doc"><div class="company-sign-logo"><img src="./公司Logo.png" alt="環興科技股份有限公司"></div><h1>信件簽收單</h1><div class="company-sign-meta"><span>部門：${esc(departments.join("、"))}</span><span>${esc(rocDateText)}</span></div><table class="company-sign-table"><thead><tr><th>掛號編號</th><th>寄件者</th><th>收件者</th><th>簽收</th></tr></thead><tbody>${body}</tbody></table></div>`}
 function setCompanySignSheetHeader(paragraph,departmentText,dateText){const xmlDoc=paragraph.ownerDocument,pPr=[...paragraph.children].find(node=>node.localName==="pPr")||paragraph.insertBefore(xmlDoc.createElementNS(WORD_NS,"w:pPr"),paragraph.firstChild),oldTabs=[...pPr.children].find(node=>node.localName==="tabs");if(oldTabs)oldTabs.remove();const tabs=xmlDoc.createElementNS(WORD_NS,"w:tabs"),tab=xmlDoc.createElementNS(WORD_NS,"w:tab");tab.setAttributeNS(WORD_NS,"w:val","right");tab.setAttributeNS(WORD_NS,"w:pos","9180");tabs.appendChild(tab);pPr.appendChild(tabs);[...paragraph.children].filter(node=>node.localName!=="pPr").forEach(node=>node.remove());const addRun=value=>{const run=xmlDoc.createElementNS(WORD_NS,"w:r"),rPr=xmlDoc.createElementNS(WORD_NS,"w:rPr"),fonts=xmlDoc.createElementNS(WORD_NS,"w:rFonts"),size=xmlDoc.createElementNS(WORD_NS,"w:sz"),sizeCs=xmlDoc.createElementNS(WORD_NS,"w:szCs"),text=xmlDoc.createElementNS(WORD_NS,"w:t");["ascii","hAnsi","eastAsia","cs"].forEach(name=>fonts.setAttributeNS(WORD_NS,`w:${name}`,"標楷體"));size.setAttributeNS(WORD_NS,"w:val","32");sizeCs.setAttributeNS(WORD_NS,"w:val","32");rPr.append(fonts,size,sizeCs);run.appendChild(rPr);if(value===null){run.appendChild(xmlDoc.createElementNS(WORD_NS,"w:tab"))}else{text.setAttributeNS("http://www.w3.org/XML/1998/namespace","xml:space","preserve");text.textContent=value;run.appendChild(text)}paragraph.appendChild(run)};addRun(departmentText);addRun(null);addRun(dateText)}
-function fillCompanySignSheetXml(xmlText,rows,date){const xmlDoc=new DOMParser().parseFromString(xmlText,"application/xml");if(xmlDoc.getElementsByTagName("parsererror").length)throw new Error("公司簽收單範本 XML 解析失敗");const paragraphs=[...xmlDoc.getElementsByTagNameNS(WORD_NS,"p")].filter(p=>!p.getElementsByTagNameNS(WORD_NS,"p").length),header=paragraphs.find(p=>{const text=wordTextNodes(p).map(node=>node.textContent).join("");return text.includes("部門：")&&text.includes("年")&&text.includes("月")&&text.includes("日")});if(!header)throw new Error("公司簽收單範本找不到部門與日期欄位");const departments=[...new Set(rows.map(row=>row.department).filter(Boolean))],parts=(date||todayStr()).split("-").map(Number);setCompanySignSheetHeader(header,`部門：${departments.join("、")}`,`${parts[0]-1911}年${String(parts[1]).padStart(2,"0")}月${String(parts[2]).padStart(2,"0")}日`);const table=xmlDoc.getElementsByTagNameNS(WORD_NS,"tbl")[0];if(!table)throw new Error("公司簽收單範本找不到明細表格");const tableRows=[...table.children].filter(node=>node.localName==="tr");if(tableRows.length<2)throw new Error("公司簽收單範本缺少資料列");const templateRow=tableRows[1].cloneNode(true);tableRows.slice(1).forEach(row=>row.remove());rows.forEach(record=>{const row=templateRow.cloneNode(true),cells=[...row.children].filter(node=>node.localName==="tc"),values=[record.trackingNo||record.mailType||"",record.sender||"",record.receiver||"",""];values.forEach((value,index)=>{if(cells[index])setWordCellText(cells[index],value)});table.appendChild(row)});return new XMLSerializer().serializeToString(xmlDoc)}
+function fillCompanySignSheetXml(xmlText,rows,date){const xmlDoc=new DOMParser().parseFromString(xmlText,"application/xml");if(xmlDoc.getElementsByTagName("parsererror").length)throw new Error("公司簽收單範本 XML 解析失敗");const paragraphs=[...xmlDoc.getElementsByTagNameNS(WORD_NS,"p")].filter(p=>!p.getElementsByTagNameNS(WORD_NS,"p").length),header=paragraphs.find(p=>{const text=wordTextNodes(p).map(node=>node.textContent).join("");return text.includes("部門：")&&text.includes("年")&&text.includes("月")&&text.includes("日")});if(!header)throw new Error("公司簽收單範本找不到部門與日期欄位");const departments=[...new Set(rows.map(row=>row.department).filter(Boolean))],parts=(date||todayStr()).split("-").map(Number);setCompanySignSheetHeader(header,`部門：${departments.join("、")}`,`${parts[0]-1911}年${String(parts[1]).padStart(2,"0")}月${String(parts[2]).padStart(2,"0")}日`);const table=xmlDoc.getElementsByTagNameNS(WORD_NS,"tbl")[0];if(!table)throw new Error("公司簽收單範本找不到明細表格");const tableRows=[...table.children].filter(node=>node.localName==="tr");if(tableRows.length<2)throw new Error("公司簽收單範本缺少資料列");const templateRow=tableRows[1].cloneNode(true);tableRows.slice(1).forEach(row=>row.remove());rows.forEach(record=>{const row=templateRow.cloneNode(true),cells=[...row.children].filter(node=>node.localName==="tc"),values=[formatTrackingNo(record.mailType, record.trackingNo)||record.mailType||"",record.sender||"",record.receiver||"",""];values.forEach((value,index)=>{if(cells[index])setWordCellText(cells[index],value)});table.appendChild(row)});return new XMLSerializer().serializeToString(xmlDoc)}
 async function downloadCompanySignSheet(){if(!selectedSheetRecords.length){alert("請先勾選部門並產生簽收單");return}if(!window.JSZip){alert("Word 套表元件尚未載入，請確認網路連線後重新整理");return}try{const date=$("sheetDate").value||todayStr(),templateUrl=`./公司信件簽收單_原始範本.docx?refresh=${Date.now()}`,response=await fetch(templateUrl,{cache:"no-store"});if(!response.ok)throw new Error(`無法讀取公司簽收單範本（${response.status}）`);const zip=await JSZip.loadAsync(await response.arrayBuffer()),documentFile=zip.file("word/document.xml");if(!documentFile)throw new Error("公司簽收單範本缺少 document.xml");zip.file("word/document.xml",fillCompanySignSheetXml(await documentFile.async("string"),selectedSheetRecords,date));const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"}),url=URL.createObjectURL(blob),link=document.createElement("a"),departments=[...new Set(selectedSheetRecords.map(row=>row.department))].join("_");link.href=url;link.download=`信件簽收單_${date}_${departments}.docx`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(error){console.error(error);alert("產生公司版簽收單失敗：" + (error?.message||error))}} window.downloadCompanySignSheet=downloadCompanySignSheet;
 async function markSelectedAsPrinted(){if(!selectedSheetRecords.length){alert("請先產生簽收單");return}if(!confirm(`確定將 ${selectedSheetRecords.length} 筆郵件標記為已列印？`))return;const batchNo=`MAIL-${Date.now()}`;for(const r of selectedSheetRecords){await updateDoc(doc(db,"mailRecords",r.id),{printed:true,printBatchNo:batchNo,printedAt:new Date(),printedBy:currentUser})}await writeAuditLog({action:"print",category:"signSheet",targetLabel:batchNo,after:{count:selectedSheetRecords.length,departments:[...new Set(selectedSheetRecords.map(r=>r.department))].join(",")}});alert("已標記為已列印");selectedSheetRecords=[];await loadMailRecords();}
 window.markSelectedAsPrinted=markSelectedAsPrinted;
