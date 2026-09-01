@@ -38,15 +38,15 @@
 .company-sign-doc *{font-family:inherit}
 .company-sign-logo{text-align:center;margin:0 auto 10px}
 .company-sign-logo img{display:block;max-width:390px;width:55%;height:auto;margin:0 auto}
-.company-sign-doc h1{text-align:center;font-size:30px;font-weight:700;letter-spacing:5px;margin:8px 0 22px}
-.company-sign-meta{display:flex;justify-content:space-between;align-items:flex-end;font-size:16pt;margin:0 8px 12px}
+.company-sign-doc h1{text-align:center;font-size:30px;font-weight:700;letter-spacing:0;margin:8px 0 22px}
+.company-sign-meta{display:flex;justify-content:space-between;align-items:flex-end;font-size:16pt;margin:0 0 12px}
 .company-sign-table{width:100%;border-collapse:collapse;table-layout:fixed}
 .company-sign-table th,.company-sign-table td{border:1px solid #111;background:#fff;color:#111;padding:10px 8px;text-align:center;font-size:20px;height:54px}
 .company-sign-table th{font-size:22px;font-weight:700}
-.company-sign-table th:nth-child(1){width:25%}
-.company-sign-table th:nth-child(2){width:44%}
-.company-sign-table th:nth-child(3){width:18%}
-.company-sign-table th:nth-child(4){width:13%}
+.company-sign-table th:nth-child(1){width:23.5%}
+.company-sign-table th:nth-child(2){width:47.5%}
+.company-sign-table th:nth-child(3){width:17%}
+.company-sign-table th:nth-child(4){width:12%}
 
 .outgoing-wide-panel{width:100%;max-width:none}
 .outgoing-header-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
