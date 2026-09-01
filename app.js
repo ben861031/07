@@ -14,6 +14,7 @@ let currentRole="",currentUser="系統使用者",currentUserEmail="";
 let mailRecords=[],outgoingBatches=[],departmentList=[],mailTypeList=[],userList=[],auditLogs=[],loginLogs=[];
 let currentPage=1,pageSize=10,auditCurrentPage=1,auditPageSize=25,loginCurrentPage=1,loginPageSize=10;
 let selectedSheetRecords=[],sheetMode="normal",activeReprintBatchNo="",activeReprintLabel="";
+let incomingSuggestionListSerial=0;
 
 function $(id){return document.getElementById(id)}
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
@@ -29,10 +30,14 @@ async function writeAuditLog({action,category,targetId="",targetLabel="",before=
 function compact(data){if(!data)return null;const out={};Object.entries(data).forEach(([k,v])=>{if(k==="id")return;if(v===null||["string","number","boolean"].includes(typeof v))out[k]=v});return out}
 
 function applyRoleAccess(){document.querySelectorAll(".admin-only").forEach(el=>el.style.display=canAdmin()?"":"none");$("systemMenuTitle").style.display=canAdmin()?"":"none"}
-function toggleSidebar(){ $("sidebar").classList.toggle("collapsed") }
+function isMobileLayout(){return window.matchMedia("(max-width: 720px)").matches}
+function syncSidebarToggle(){const sidebar=$("sidebar"),toggle=$("sidebarToggle");if(!sidebar||!toggle)return;toggle.setAttribute("aria-expanded",String(isMobileLayout()?sidebar.classList.contains("mobile-open"):!sidebar.classList.contains("collapsed")))}
+function toggleSidebar(){const sidebar=$("sidebar");if(!sidebar)return;if(isMobileLayout()){sidebar.classList.remove("collapsed");sidebar.classList.toggle("mobile-open")}else{sidebar.classList.remove("mobile-open");sidebar.classList.toggle("collapsed")}syncSidebarToggle()}
 window.toggleSidebar=toggleSidebar;
-function showPage(pageId,el){const adminPages=["deptPage","mailTypePage","permissionPage","auditLogPage","loginLogPage"];if(!$(pageId)||(!canAdmin()&&adminPages.includes(pageId))){pageId="registerPage";el=document.querySelector('[onclick*=registerPage]')}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));$(pageId)?.classList.remove("hidden");document.querySelectorAll(".menu-item").forEach(i=>i.classList.remove("active"));if(el)el.classList.add("active");localStorage.setItem("mailLastPage",pageId);if(pageId==="deptPage"){loadDepartments().catch(error=>{console.error("部門重新載入失敗",error);renderDepartmentMaintenanceError(error);});}if(pageId==="mailTypePage")loadMailTypes();if(window.lucide)lucide.createIcons();}
+function showPage(pageId,el){const adminPages=["deptPage","mailTypePage","permissionPage","auditLogPage","loginLogPage"];if(!$(pageId)||(!canAdmin()&&adminPages.includes(pageId))){pageId="registerPage";el=document.querySelector('[onclick*=registerPage]')}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));$(pageId)?.classList.remove("hidden");document.querySelectorAll(".menu-item").forEach(i=>i.classList.remove("active"));if(el)el.classList.add("active");localStorage.setItem("mailLastPage",pageId);if(isMobileLayout())$("sidebar")?.classList.remove("mobile-open");syncSidebarToggle();window.scrollTo({top:0,left:0,behavior:"auto"});if(pageId==="deptPage"){loadDepartments().catch(error=>{console.error("部門重新載入失敗",error);renderDepartmentMaintenanceError(error);});}if(pageId==="mailTypePage")loadMailTypes();if(window.lucide)lucide.createIcons();}
 window.showPage=showPage;
+document.querySelectorAll(".menu-item").forEach(item=>{item.setAttribute("role","button");item.tabIndex=0;item.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();item.click()}})});
+window.addEventListener("resize",()=>{const sidebar=$("sidebar");if(!sidebar)return;if(!isMobileLayout())sidebar.classList.remove("mobile-open");syncSidebarToggle()});
 function restoreLastPage(){const last=localStorage.getItem("mailLastPage")||"registerPage",page=$(last)?last:"registerPage";const menu=page==="sheetPage"?document.querySelector('[onclick*=openSheetPage]'):document.querySelector(`[onclick*="${page}"]`);showPage(page,menu||document.querySelector('[onclick*=registerPage]'))}
 
 function currentMailTypes(){return mailTypeList.length?mailTypeList.map(type=>type.name):DEFAULT_MAIL_TYPES}
@@ -90,6 +95,7 @@ async function loadOutgoingBatches(){const snap=await getDocs(collection(db,"out
 
 function incomingRowHtml(item={}, index=0){
   const types = currentMailTypes();
+  const receiverListId=`incomingReceiverOptions${++incomingSuggestionListSerial}`;
   const typeOpts = types.map((t,i)=>`<option value="${esc(t)}" ${item.mailType===t?'selected':''}>${i+1}. ${esc(t)}</option>`).join("");
   const typeHtml = item.mailType && !types.includes(item.mailType)
     ? `<option value="${esc(item.mailType)}" selected>${esc(item.mailType)} (歷史)</option>` + typeOpts
@@ -102,7 +108,7 @@ function incomingRowHtml(item={}, index=0){
     <td><input data-field="trackingNo" value="${esc(item.trackingNo||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
     <td><input data-field="sender" value="${esc(item.sender||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
     <td><select data-field="department" style="width:100%;border:1px solid #dbe4f0;border-radius:8px;padding:8px;font-size:14px;background:#fff">${deptHtml}</select></td>
-    <td class="incoming-receiver-cell"><input data-field="receiver" value="${esc(item.receiver||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"><select class="recent-receiver-select" aria-label="近期常用收件人" hidden onchange="chooseRecentReceiver(this)"></select></td>
+    <td class="incoming-receiver-cell"><div class="receiver-combobox"><input data-field="receiver" value="${esc(item.receiver||"")}" list="${receiverListId}" autocomplete="off" aria-label="收件人，可輸入姓名或展開近期收件人"><button type="button" class="receiver-combobox-toggle" aria-label="展開近期收件人" onclick="openReceiverSuggestions(this)">⌄</button><datalist id="${receiverListId}" class="receiver-suggestion-list"></datalist></div></td>
     <td class="incoming-row-actions"><input type="hidden" data-field="remark" value="${esc(item.remark||"")}">${item.id?'<span class="editing-row-note">編輯既有資料</span>':'<div class="row-action-group"><button type="button" class="btn btn-gray row-action-btn" title="複製上一列內容" onclick="copyPreviousIncomingRow(this)">複製</button><button type="button" class="btn btn-gray row-action-btn" title="在下方新增空白列" onclick="addBlankIncomingRow(this)">新增</button><button type="button" class="btn btn-red row-action-btn" title="刪除這一列" onclick="removeIncomingRow(this)">刪除</button></div>'}</td>
   </tr>`;
 }
@@ -173,10 +179,10 @@ function moveIncomingCell(input,key){
   const target=rows[nextRow].querySelector(`[data-field="${fields[nextField]}"]`);
   if(target){target.focus();if(target.select&&target.tagName!=="SELECT")target.select()}
 }
-function recentReceiversForDepartment(department,limit=6){if(!department)return[];const seen=new Set(),results=[];const ordered=[...mailRecords].sort((a,b)=>(getTime(b.createdTime)||Date.parse(b.receiveDate||0))-(getTime(a.createdTime)||Date.parse(a.receiveDate||0)));for(const record of ordered){const receiver=(record.receiver||"").trim();if(record.department===department&&receiver&&!seen.has(receiver)){seen.add(receiver);results.push(receiver);if(results.length>=limit)break}}return results}
-function refreshIncomingReceiverSuggestions(row){if(!row)return;const department=row.querySelector('[data-field="department"]')?.value||"",select=row.querySelector(".recent-receiver-select");if(!select)return;const names=recentReceiversForDepartment(department);select.hidden=names.length===0;select.innerHTML=names.length?`<option value="">近期收件人（${names.length}）</option>`+names.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join(""):""}
+function recentReceiversForDepartment(department,limit=20){if(!department)return[];const seen=new Set(),results=[];const ordered=[...mailRecords].sort((a,b)=>(getTime(b.createdTime)||Date.parse(b.receiveDate||0))-(getTime(a.createdTime)||Date.parse(a.receiveDate||0)));for(const record of ordered){const receiver=(record.receiver||"").trim();if(record.department===department&&receiver&&!seen.has(receiver)){seen.add(receiver);results.push(receiver);if(results.length>=limit)break}}return results}
+function refreshIncomingReceiverSuggestions(row){if(!row)return;const department=row.querySelector('[data-field="department"]')?.value||"",list=row.querySelector(".receiver-suggestion-list");if(!list)return;const names=recentReceiversForDepartment(department);list.innerHTML=names.map(name=>`<option value="${esc(name)}"></option>`).join("")}
 function refreshAllIncomingReceiverSuggestions(){document.querySelectorAll(".incoming-entry-row").forEach(refreshIncomingReceiverSuggestions)}
-function chooseRecentReceiver(select){if(!select.value)return;const input=select.closest("tr").querySelector('[data-field="receiver"]');input.value=select.value;select.value="";refreshIncomingRows();input.focus();input.select()} window.chooseRecentReceiver=chooseRecentReceiver;
+function openReceiverSuggestions(button){const input=button.closest(".receiver-combobox")?.querySelector('[data-field="receiver"]');if(!input)return;input.focus();try{if(typeof input.showPicker==="function")input.showPicker()}catch(error){console.debug("收件人建議選單需由瀏覽器自動展開",error)}} window.openReceiverSuggestions=openReceiverSuggestions;
 function incomingRowValues(row){const value=name=>row.querySelector(`[data-field="${name}"]`)?.value||"";return {mailType:value("mailType"),trackingNo:value("trackingNo"),sender:value("sender"),department:value("department"),receiver:value("receiver"),remark:value("remark")}}
 function copyPreviousIncomingRow(button){const row=button.closest("tr"),rows=[...document.querySelectorAll(".incoming-entry-row")],index=rows.indexOf(row);if(index<=0){alert("第一列沒有上一列可以複製");return}const values=incomingRowValues(rows[index-1]);Object.entries(values).forEach(([field,value])=>{const control=row.querySelector(`[data-field="${field}"]`);if(control)control.value=value});row.dataset.id="";refreshIncomingReceiverSuggestions(row);refreshIncomingRows();row.querySelector('[data-field="trackingNo"]').focus()} window.copyPreviousIncomingRow=copyPreviousIncomingRow;
 function addBlankIncomingRow(button){const row=button.closest("tr"),index=[...document.querySelectorAll(".incoming-entry-row")].indexOf(row);row.insertAdjacentHTML("afterend",incomingRowHtml({mailType:currentMailTypes()[0]||"掛號"},index+1));const added=row.nextElementSibling;refreshIncomingReceiverSuggestions(added);refreshIncomingRows();added.querySelector('[data-field="mailType"]').focus()} window.addBlankIncomingRow=addBlankIncomingRow;

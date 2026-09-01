@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.11">
+<link rel="stylesheet" href="./styles.css?v=1.7.12">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
   <div class="app">
     <aside class="sidebar" id="sidebar">
       <div class="logo">
-        <button id="sidebarToggle" class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        <button id="sidebarToggle" class="sidebar-toggle" aria-label="切換導覽選單" aria-expanded="false" onclick="toggleSidebar()">☰</button>
         <div class="logo-content">
           <div class="logo-title">郵件簽收管理系統</div>
           <div class="logo-sub">Mail Receipt System</div>
@@ -91,8 +91,8 @@
               <p class="page-desc">可一次輸入多筆郵件。填寫寄件人與收件人的列才會建檔。</p>
             </div>
             <div>
-              <button class="btn btn-gray" onclick="resetMailForm()">清空重填</button>
-              <button class="btn btn-primary" onclick="saveMailRecord()">儲存郵件</button>
+              <button class="btn btn-gray" onclick="resetMailForm()"><i data-lucide="rotate-ccw"></i>清空重填</button>
+              <button class="btn btn-primary" onclick="saveMailRecord()"><i data-lucide="save"></i>儲存郵件</button>
             </div>
           </div>
           <input type="hidden" id="mailId"> <!-- Used when editing single mail -->
@@ -108,7 +108,7 @@
           </div>
           <div class="incoming-help-line">
             <i data-lucide="keyboard"></i>
-            <span>方向鍵／Enter 移動欄位；選擇收件部門後會顯示近期收件人</span>
+            <span>方向鍵／Enter 移動欄位；收件人可輸入關鍵字或展開近期名單</span>
           </div>
           <div class="table-wrap outgoing-entry-wrap">
             <table class="outgoing-entry-table incoming-entry-table">
@@ -196,9 +196,9 @@
               <p class="page-desc">預設提供 20 列快速登打；收件人姓名與寄達地名皆有填寫的列才會建檔。</p>
             </div>
             <div>
-              <button class="btn btn-gray" onclick="startNewOutgoingForm()">清空重填</button>
-              <button class="btn btn-green" onclick="saveOutgoingBatch()">儲存寄件資料</button>
-              <button class="btn btn-primary" onclick="downloadOutgoingExcel()">下載原版 Excel</button>
+              <button class="btn btn-gray" onclick="startNewOutgoingForm()"><i data-lucide="rotate-ccw"></i>清空重填</button>
+              <button class="btn btn-green" onclick="saveOutgoingBatch()"><i data-lucide="save"></i>儲存寄件資料</button>
+              <button class="btn btn-primary" onclick="downloadOutgoingExcel()"><i data-lucide="file-spreadsheet"></i>下載原版 Excel</button>
             </div>
           </div>
           <input type="hidden" id="outgoingBatchId">
@@ -284,7 +284,7 @@
             <div class="form-group"><label>部門名稱</label><input type="text" id="newDept"></div>
             <div class="form-group"><label>顯示順序</label><input type="number" id="newDeptOrder"></div>
           </div>
-          <button class="btn btn-green" onclick="addDepartment()">新增部門</button>
+          <button class="btn btn-green" onclick="addDepartment()"><i data-lucide="plus"></i>新增部門</button>
           <div id="deptListArea" class="maintenance-list"></div>
         </div>
       </section>
@@ -297,7 +297,7 @@
             <div class="form-group"><label>郵件類型名稱</label><input type="text" id="newMailType" placeholder="例如：快捷、包裹"></div>
             <div class="form-group"><label>顯示順序</label><input type="number" id="newMailTypeOrder"></div>
           </div>
-          <button class="btn btn-green" onclick="addMailType()">新增郵件類型</button>
+          <button class="btn btn-green" onclick="addMailType()"><i data-lucide="plus"></i>新增郵件類型</button>
           <div id="mailTypeListArea" class="maintenance-list"></div>
         </div>
       </section>
@@ -306,7 +306,7 @@
         <div class="panel admin-wide-panel">
           <h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2>
           <div class="form-group"><label>Email</label><input type="email" id="newUserEmail" placeholder="user@company.com"></div>
-          <button class="btn btn-green" onclick="addWhitelistUser()">新增白名單</button>
+          <button class="btn btn-green" onclick="addWhitelistUser()"><i data-lucide="user-plus"></i>新增白名單</button>
           <div id="userListArea" class="maintenance-list"></div>
         </div>
       </section>
@@ -314,7 +314,7 @@
       <section id="auditLogPage" class="page hidden">
         <div class="panel">
           <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>操作紀錄 <span id="auditCount">(0筆)</span></h2>
-            <div class="audit-toolbar"><input type="text" id="auditSearch" placeholder="搜尋操作者、Email、操作內容"><select id="auditActionFilter"><option value="">全部操作</option><option value="create">新增</option><option value="update">修改</option><option value="delete">刪除</option><option value="print">列印</option><option value="reprint">補印</option><option value="permission">權限異動</option></select><button class="btn btn-gray" onclick="resetAuditFilter()">重設</button></div>
+            <div class="audit-toolbar"><input type="text" id="auditSearch" placeholder="搜尋操作者、Email、操作內容"><select id="auditActionFilter"><option value="">全部操作</option><option value="create">新增</option><option value="update">修改</option><option value="delete">刪除</option><option value="print">列印</option><option value="reprint">補印</option><option value="permission">權限異動</option></select><button class="btn btn-gray" onclick="resetAuditFilter()"><i data-lucide="rotate-ccw"></i>重設</button></div>
           <div class="table-wrap"><table><thead><tr><th>時間</th><th>操作者</th><th>角色</th><th>操作</th><th>類別</th><th>對象</th><th>內容</th></tr></thead><tbody id="auditLogTable"></tbody></table></div>
           <div class="pagination-row"><div>每頁顯示：<select id="auditPageSize" onchange="changeAuditPageSize()"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div><div id="auditPagination"></div></div>
         </div>
@@ -331,6 +331,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.11"></script>
+<script src="./app.js?v=1.7.12"></script>
 </body>
 </html>
