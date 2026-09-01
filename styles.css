@@ -117,3 +117,14 @@
   body.printing-outgoing .postal-form:last-child{break-after:auto;page-break-after:auto}
   @page{size:A4 portrait;margin:25.4mm 12.5mm 20mm 13mm}
 }
+
+@media (min-width: 1101px) {
+  .register-form-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 721px) and (max-width: 1100px) {
+  .register-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
