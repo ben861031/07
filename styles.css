@@ -173,6 +173,7 @@
 .receiver-combobox input{width:100%;padding-right:42px!important}
 .receiver-combobox input::-webkit-calendar-picker-indicator{display:none!important}
 .receiver-combobox-toggle{position:absolute;right:4px;top:50%;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;transform:translateY(-50%)}
+.receiver-combobox-toggle svg{display:block;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .receiver-combobox-toggle:hover{background:#eff6ff;color:#2563eb}
 .receiver-combobox-toggle:focus-visible{outline:3px solid rgba(37,99,235,.2);outline-offset:1px}
 .incoming-row-actions{min-width:240px}
