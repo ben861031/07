@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.7">
+<link rel="stylesheet" href="./styles.css?v=1.7.8">
 </head>
 <body>
 
@@ -134,7 +134,7 @@
           <div class="sheet-page-heading">
             <div>
               <h2 class="detail-title"><i data-lucide="printer" class="detail-title-icon"></i>簽收單產生</h2>
-              <p class="page-desc">依照下方三個步驟操作，列印完成後再標記為已列印。</p>
+              <p class="page-desc">選擇日期與部門，確認內容後即可下載 Word 或直接列印。</p>
             </div>
             <div class="sheet-steps" aria-label="簽收單操作步驟">
               <span><b>1</b>選日期</span><span><b>2</b>選部門</span><span><b>3</b>產生預覽</span>
@@ -142,15 +142,15 @@
           </div>
           <div class="sheet-control-card">
             <div class="sheet-control-row">
-              <label class="sheet-date-field"><span><b>步驟 1</b> 收件日期</span><input type="date" id="sheetDate" onchange="renderSheetPage()"></label>
+              <label class="sheet-date-field"><span>收件日期</span><input type="date" id="sheetDate" onchange="renderSheetPage()"></label>
               <label class="checkbox-line sheet-unprinted-toggle"><input type="checkbox" id="sheetOnlyUnprinted" checked onchange="renderSheetPage()"><span><strong>只顯示未列印郵件</strong><small>一般列印建議保持勾選</small></span></label>
             </div>
             <div class="sheet-dept-heading">
-              <div><b>步驟 2</b><strong>選擇要列印的部門</strong><span>可同時選擇多個部門</span></div>
+              <div><strong>選擇要列印的部門</strong><span>可同時選擇多個部門</span></div>
               <div><button class="btn btn-gray" onclick="selectAllSheetDepartments(true)">全部選取</button><button class="btn btn-gray" onclick="selectAllSheetDepartments(false)">清除選取</button></div>
             </div>
             <div id="sheetDeptList" class="dept-check-grid"></div>
-            <div class="sheet-generate-row"><button class="btn btn-primary sheet-generate-btn" onclick="generateSignSheet()"><i data-lucide="file-check-2"></i><span><strong>步驟 3　產生簽收單預覽</strong><small>先確認內容，再下載 Word 或直接列印</small></span></button></div>
+            <div class="sheet-generate-row"><button class="btn btn-primary sheet-generate-btn" id="sheetGenerateButton" onclick="generateSignSheet()" disabled><i data-lucide="file-check-2"></i><strong>產生簽收單預覽</strong></button></div>
           </div>
         </div>
 
@@ -254,10 +254,6 @@
               </div>
             </div>
           </div>
-          <div id="reprintActions" class="reprint-actions">
-            <div><strong>補印選取</strong><span id="reprintSelectionCount">已選 0 筆</span></div>
-            <div><button class="btn btn-gray" onclick="clearReprintSelection()">清除選取</button><button class="btn btn-primary" id="reprintSelectedButton" onclick="reprintSelectedRecords()" disabled>補印已選</button></div>
-          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>收件日期</th><th>類型</th><th>掛號 / 單號</th><th>寄件人</th><th>部門</th><th>收件人</th><th>狀態</th><th>操作</th></tr></thead>
@@ -322,6 +318,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.7"></script>
+<script src="./app.js?v=1.7.8"></script>
 </body>
 </html>

@@ -98,7 +98,6 @@
 .sheet-control-row{display:grid;grid-template-columns:minmax(240px,1fr) minmax(280px,1fr);gap:14px;align-items:stretch}
 .sheet-date-field,.sheet-unprinted-toggle{padding:14px;border:1px solid #dbe4f0;border-radius:14px;background:#fff}
 .sheet-date-field span{display:block;margin-bottom:8px;font-size:14px;font-weight:800;color:#334155}
-.sheet-date-field b,.sheet-dept-heading b{color:#2563eb;margin-right:6px}
 .sheet-date-field input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit}
 .sheet-unprinted-toggle{display:flex;align-items:center;gap:12px;cursor:pointer}
 .sheet-unprinted-toggle input{width:20px;height:20px;accent-color:#2563eb}
@@ -110,19 +109,19 @@
 .sheet-generate-row{display:flex;justify-content:flex-end;margin-top:16px}
 .sheet-generate-btn{min-width:310px;display:flex;align-items:center;justify-content:center;gap:12px;padding:13px 20px}
 .sheet-generate-btn svg{width:24px;height:24px}
-.sheet-generate-btn span{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
-.sheet-generate-btn small{font-weight:600;opacity:.85}
+.sheet-generate-btn strong{font-size:15px}
+.sheet-empty-state{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:20px;border:1px dashed #cbd5e1;border-radius:15px;background:#f8fafc;color:#64748b}
+.sheet-empty-state svg{width:28px;height:28px;color:#94a3b8}
+.sheet-empty-state div{display:flex;flex:1;flex-direction:column;gap:4px}
+.sheet-empty-state strong{color:#334155}
+.sheet-empty-state span{font-size:13px}
+.sheet-empty-state>b{font-size:13px;color:#64748b;white-space:nowrap}
 .sheet-output-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
 .sheet-output-actions .btn{display:inline-flex;align-items:center;gap:7px;min-height:42px}
 .sheet-output-actions svg{width:18px;height:18px}
 .reprint-mode-notice{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:13px 16px;border:1px solid #fbbf24;border-radius:14px;background:#fffbeb;color:#92400e}
 .reprint-mode-notice strong{padding:5px 9px;border-radius:999px;background:#f59e0b;color:#fff;white-space:nowrap}
 #sheetPreviewPanel .print-action-row>div:first-child{flex-direction:column;align-items:flex-start;gap:3px}
-.reprint-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0;padding:12px 14px;border:1px solid #bfdbfe;border-radius:14px;background:#eff6ff}
-.reprint-actions>div{display:flex;align-items:center;gap:10px}
-.reprint-actions span{color:#475569}
-.reprint-check-col{width:42px;text-align:center}
-.reprint-check-col input{width:18px;height:18px;accent-color:#2563eb}
 .print-batch-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
 .print-batch-meta code{font-size:11px;color:#64748b}
 .incoming-receiver-cell{min-width:170px}
@@ -145,7 +144,7 @@
   .outgoing-table-toolbar{align-items:stretch;flex-direction:column}
   .outgoing-entry-table{min-width:760px}
   .outgoing-entry-actions{align-items:stretch;gap:10px;flex-direction:column}
-  .sheet-page-heading,.sheet-dept-heading,.reprint-actions{align-items:stretch;flex-direction:column}
+  .sheet-page-heading,.sheet-dept-heading{align-items:stretch;flex-direction:column}
   .sheet-steps{justify-content:flex-start}
   .sheet-control-row{grid-template-columns:1fr}
   .sheet-dept-heading>div:last-child,.sheet-output-actions{justify-content:stretch}
