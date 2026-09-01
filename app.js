@@ -18,8 +18,9 @@ let incomingSuggestionListSerial=0;
 
 function $(id){return document.getElementById(id)}
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
-function todayStr(){return new Date().toISOString().slice(0,10)}
-function ymStr(d=new Date()){return d.toISOString().slice(0,7)}
+function localIsoDate(d = new Date()){ const dt = new Date(d); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); return dt.toISOString(); }
+function todayStr(){return localIsoDate().slice(0,10)}
+function ymStr(d=new Date()){return localIsoDate(d).slice(0,7)}
 function formatDate(v){if(!v)return "-"; if(v.seconds)return new Date(v.seconds*1000).toLocaleString("zh-TW"); if(/^\d{4}-\d{2}-\d{2}$/.test(String(v)))return String(v).replaceAll("-","/"); return new Date(v).toLocaleString("zh-TW")}
 function getTime(v){if(!v)return 0;if(typeof v.toMillis==='function')return v.toMillis();if(v.seconds)return (v.seconds*1000)+Math.floor((v.nanoseconds||0)/1000000);return new Date(v).getTime()||0}
 function canAdmin(){return currentRole==="admin"}
