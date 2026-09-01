@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.8">
+<link rel="stylesheet" href="./styles.css?v=1.7.9">
 </head>
 <body>
 
@@ -117,7 +117,7 @@
                   <th style="width:16%">收件部門</th>
                    <th style="width:16%">收件人</th>
                    <th style="width:auto">備註</th>
-                   <th style="width:190px">列操作</th>
+                   <th style="width:230px">操作</th>
                 </tr>
               </thead>
               <tbody id="incomingEntryRows"></tbody>
@@ -143,7 +143,14 @@
           <div class="sheet-control-card">
             <div class="sheet-control-row">
               <label class="sheet-date-field"><span>收件日期</span><input type="date" id="sheetDate" onchange="renderSheetPage()"></label>
-              <label class="checkbox-line sheet-unprinted-toggle"><input type="checkbox" id="sheetOnlyUnprinted" checked onchange="renderSheetPage()"><span><strong>只顯示未列印郵件</strong><small>一般列印建議保持勾選</small></span></label>
+              <input type="checkbox" id="sheetOnlyUnprinted" checked hidden>
+              <div class="sheet-scope-card">
+                <div class="sheet-scope-heading"><div><strong>列印範圍</strong><small>選擇本次要顯示的郵件</small></div><span>補印請由下方列印批次開啟</span></div>
+                <div class="sheet-scope-options">
+                  <label class="sheet-scope-option"><input type="radio" name="sheetScope" value="unprinted" checked onchange="setSheetScope(this.value)"><span><strong>待列印郵件</strong><small>一般列印建議</small></span><b id="sheetPendingCount">0 件</b></label>
+                  <label class="sheet-scope-option"><input type="radio" name="sheetScope" value="all" onchange="setSheetScope(this.value)"><span><strong>全部郵件</strong><small>包含已列印資料</small></span><b id="sheetAllCount">0 件</b></label>
+                </div>
+              </div>
             </div>
             <div class="sheet-dept-heading">
               <div><strong>選擇要列印的部門</strong><span>可同時選擇多個部門</span></div>
@@ -318,6 +325,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.8"></script>
+<script src="./app.js?v=1.7.9"></script>
 </body>
 </html>
