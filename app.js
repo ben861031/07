@@ -203,6 +203,7 @@ async function saveMailRecord(){
   
   try{
     let added=0, updated=0;
+    let baseTime = Date.now();
     for(const item of items){
       const data={receiveDate:date, mailType:item.mailType, trackingNo:item.trackingNo, sender:item.sender, department:item.department, receiver:item.receiver, remark:item.remark};
       if(item.id){
@@ -211,7 +212,8 @@ async function saveMailRecord(){
         await writeAuditLog({action:"update",category:"mailRecord",targetId:item.id,targetLabel:mailLabel(data),before,after:{...before,...data}});
         updated++;
       }else{
-        const ref=await addDoc(collection(db,"mailRecords"),{...data,printed:false,createdBy:currentUser,createdByEmail:currentUserEmail,createdTime:new Date()});
+        baseTime += 1; // 保證每筆資料建立時間嚴格遞增，確保排序正確
+        const ref=await addDoc(collection(db,"mailRecords"),{...data,printed:false,createdBy:currentUser,createdByEmail:currentUserEmail,createdTime:new Date(baseTime)});
         await writeAuditLog({action:"create",category:"mailRecord",targetId:ref.id,targetLabel:mailLabel(data),after:{...data,printed:false}});
         added++;
       }
