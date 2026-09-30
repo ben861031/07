@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.8.1">
+<link rel="stylesheet" href="./styles.css?v=1.9.0">
 </head>
 <body>
 
@@ -187,7 +187,13 @@
               <p class="page-desc">可開啟原列印批次補印；新版批次會保留列印當時的資料快照。</p>
             </div>
           </div>
+          <div class="history-list-controls">
+            <label>收件日期<select id="printBatchDateFilter" onchange="changeHistoryListFilter('print')"><option value="">全部日期</option></select></label>
+            <label>部門<select id="printBatchDepartmentFilter" onchange="changeHistoryListFilter('print')"><option value="">全部部門</option></select></label>
+            <span id="printBatchHistoryCount" class="history-list-count">共 0 筆</span>
+          </div>
           <div id="printBatchHistory" class="maintenance-list"></div>
+          <nav id="printBatchHistoryPagination" class="history-list-pagination" aria-label="列印批次分頁"></nav>
         </div>
       </section>
 
@@ -207,6 +213,14 @@
           <div class="general-outgoing-meta">
             <label class="form-group"><span>交寄日期</span><input type="date" id="generalOutgoingDate"></label>
             <label class="form-group"><span>寄件公司名稱</span><input type="text" id="generalOutgoingSender" placeholder="與大宗掛號的公司名稱相同"></label>
+          </div>
+          <div class="general-import-bar">
+            <div><strong>Excel 批次匯入</strong><span>先預覽、修正欄位與資料，確認後才正式匯入。</span></div>
+            <div class="general-import-actions">
+              <a class="btn btn-gray" href="./assets/一般寄件匯入範本.xlsx" download><i data-lucide="file-down"></i>下載範本</a>
+              <button type="button" class="btn btn-gray" onclick="document.getElementById('generalImportFile').click()"><i data-lucide="file-up"></i>選擇 Excel</button>
+              <input id="generalImportFile" type="file" accept=".xlsx,.xls,.csv" onchange="openExcelImportPreview(this.files[0])" hidden>
+            </div>
           </div>
           <div class="incoming-help-line">
             <i data-lucide="circle-help"></i>
@@ -236,12 +250,18 @@
         <div class="panel outgoing-history-panel outgoing-wide-panel">
           <div class="general-outgoing-list-heading">
             <div>
-              <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>最近一般寄件</h2>
+              <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>一般寄件紀錄</h2>
               <p class="page-desc">待補掛號號碼的郵件會優先顯示，可直接開啟補登。</p>
             </div>
             <button class="btn btn-gray" onclick="openOutgoingHistory()"><i data-lucide="search"></i>查看全部寄件</button>
           </div>
+          <div class="history-list-controls">
+            <label>交寄日期<select id="generalHistoryDateFilter" onchange="changeHistoryListFilter('general')"><option value="">全部日期</option></select></label>
+            <label>寄件公司<select id="generalHistoryCompanyFilter" onchange="changeHistoryListFilter('general')"><option value="">全部公司</option></select></label>
+            <span id="generalHistoryCount" class="history-list-count">共 0 筆</span>
+          </div>
           <div id="generalOutgoingList" class="maintenance-list"></div>
+          <nav id="generalHistoryPagination" class="history-list-pagination" aria-label="一般寄件紀錄分頁"></nav>
         </div>
       </section>
 
@@ -292,8 +312,14 @@
         </div>
 
         <div class="panel outgoing-history-panel outgoing-wide-panel">
-          <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>最近寄件紀錄</h2>
+          <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>大宗掛號寄件紀錄</h2>
+          <div class="history-list-controls">
+            <label>交寄日期<select id="bulkHistoryDateFilter" onchange="changeHistoryListFilter('bulk')"><option value="">全部日期</option></select></label>
+            <label>寄件公司<select id="bulkHistoryCompanyFilter" onchange="changeHistoryListFilter('bulk')"><option value="">全部公司</option></select></label>
+            <span id="bulkHistoryCount" class="history-list-count">共 0 筆</span>
+          </div>
           <div id="outgoingBatchList" class="maintenance-list"></div>
+          <nav id="bulkHistoryPagination" class="history-list-pagination" aria-label="大宗掛號寄件分頁"></nav>
         </div>
 
         <div id="outgoingPrintArea" class="outgoing-print-area"></div>
@@ -389,6 +415,30 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.8.1"></script>
+<dialog id="excelImportDialog" class="excel-import-dialog" aria-labelledby="excelImportTitle">
+  <div class="excel-import-head">
+    <div><h2 id="excelImportTitle">Excel 匯入預覽</h2><p id="excelImportFilename">請檢查匯入內容</p></div>
+    <button type="button" class="excel-import-close" onclick="closeExcelImportDialog()" aria-label="關閉預覽">×</button>
+  </div>
+  <div id="excelImportSummary" class="excel-import-summary" role="status"></div>
+  <div class="excel-import-mapping">
+    <div class="excel-import-source-selects">
+      <label>工作表<select id="excelImportSheet" onchange="changeExcelImportSource()"></select></label>
+      <label>欄名所在列<select id="excelImportHeaderRow" onchange="changeExcelImportSource()"></select></label>
+    </div>
+    <p>自動辨識不到的欄位，可在下方指定你的 Excel 欄位。修改對應後會重新讀取預覽。</p>
+    <div id="excelImportMappingFields" class="excel-import-mapping-fields"></div>
+  </div>
+  <div id="excelImportErrors" class="excel-import-errors" aria-live="polite"></div>
+  <div class="excel-import-table-wrap">
+    <table class="excel-import-table"><thead><tr><th>匯入</th><th>Excel 列</th><th>交寄日期</th><th>郵件種類</th><th>掛號編號</th><th>收件人／單位</th><th>寄達地址</th><th>寄件公司</th><th>備註</th><th>檢查結果</th></tr></thead><tbody id="excelImportRows"></tbody></table>
+  </div>
+  <div class="excel-import-footer">
+    <span>資料只在此預覽；按「確定匯入」後才會儲存。</span>
+    <div><button type="button" class="btn btn-gray" onclick="closeExcelImportDialog()">取消</button><button type="button" class="btn btn-primary" id="confirmExcelImportButton" onclick="confirmExcelImport()" disabled>確定匯入</button></div>
+  </div>
+</dialog>
+<script src="./scripts/mail-import.js?v=1.9.0"></script>
+<script src="./app.js?v=1.9.0"></script>
 </body>
 </html>
