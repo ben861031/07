@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.15">
+<link rel="stylesheet" href="./styles.css?v=1.7.16">
 </head>
 <body>
 
@@ -273,7 +273,7 @@
               <tbody id="mailTable"></tbody>
             </table>
           </div>
-          <div class="pagination-row"><div>每頁顯示：<select id="pageSizeSelect" onchange="changePageSize()"><option value="10">10 筆</option><option value="25">25 筆</option><option value="50">50 筆</option></select></div><div id="paginationArea"></div></div>
+          <div class="pagination-row"><div class="pagination-settings"><label for="pageSizeSelect">每頁顯示：</label><select id="pageSizeSelect" onchange="changePageSize()"><option value="10">10 筆</option><option value="25">25 筆</option><option value="50">50 筆</option></select><span class="pagination-total">共 <b id="paginationRecordCount">0</b> 筆</span></div><nav id="paginationArea" aria-label="郵件查詢分頁"></nav></div>
         </div>
       </section>
 
@@ -316,7 +316,7 @@
           <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>操作紀錄 <span id="auditCount">(0筆)</span></h2>
             <div class="audit-toolbar"><input type="text" id="auditSearch" placeholder="搜尋操作者、Email、操作內容"><select id="auditActionFilter"><option value="">全部操作</option><option value="create">新增</option><option value="update">修改</option><option value="delete">刪除</option><option value="print">列印</option><option value="reprint">補印</option><option value="permission">權限異動</option></select><button class="btn btn-gray" onclick="resetAuditFilter()"><i data-lucide="rotate-ccw"></i>重設</button></div>
           <div class="table-wrap"><table><thead><tr><th>時間</th><th>操作者</th><th>角色</th><th>操作</th><th>類別</th><th>對象</th><th>內容</th></tr></thead><tbody id="auditLogTable"></tbody></table></div>
-          <div class="pagination-row"><div>每頁顯示：<select id="auditPageSize" onchange="changeAuditPageSize()"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div><div id="auditPagination"></div></div>
+          <div class="pagination-row"><div class="pagination-settings"><label for="auditPageSize">每頁顯示：</label><select id="auditPageSize" onchange="changeAuditPageSize()"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select><span class="pagination-total">共 <b id="auditPaginationCount">0</b> 筆</span></div><nav id="auditPagination" aria-label="操作紀錄分頁"></nav></div>
         </div>
       </section>
 
@@ -324,13 +324,13 @@
         <div class="panel">
           <h2 class="detail-title"><i data-lucide="log-in" class="detail-title-icon"></i>登入紀錄 <span id="loginCount">(0筆)</span></h2>
           <div class="table-wrap"><table><thead><tr><th>登入時間</th><th>姓名</th><th>Email</th><th>角色</th></tr></thead><tbody id="loginLogTable"></tbody></table></div>
-          <div class="pagination-row"><div>每頁顯示：<select id="loginPageSize" onchange="changeLoginPageSize()"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select></div><div id="loginPagination"></div></div>
+          <div class="pagination-row"><div class="pagination-settings"><label for="loginPageSize">每頁顯示：</label><select id="loginPageSize" onchange="changeLoginPageSize()"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select><span class="pagination-total">共 <b id="loginPaginationCount">0</b> 筆</span></div><nav id="loginPagination" aria-label="登入紀錄分頁"></nav></div>
         </div>
       </section>
     </main>
   </div>
 </div>
 
-<script src="./app.js?v=1.7.15"></script>
+<script src="./app.js?v=1.7.16"></script>
 </body>
 </html>

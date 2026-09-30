@@ -336,3 +336,27 @@ button,input,select,textarea{font:inherit}
   .page-action-header>div:last-child>.btn{width:100%}
   .page-action-header>div:last-child>.btn:last-child:nth-child(odd){grid-column:1/-1}
 }
+
+/* v1.7.16：查詢、操作紀錄與登入紀錄共用精簡分頁 */
+.pagination-settings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#334155;font-size:14px;font-weight:700}
+.pagination-settings label{white-space:nowrap}
+.pagination-total{margin-left:4px;padding-left:12px;border-left:1px solid #dbe4f0;color:#64748b;font-weight:600;white-space:nowrap}
+.pagination-total b{color:#0f172a;font-size:16px}
+#paginationArea.compact-pagination,#auditPagination.compact-pagination,#loginPagination.compact-pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap}
+.pagination-pages{display:flex;align-items:center;gap:6px}
+.pagination-btn{min-width:42px;height:42px;min-height:42px;padding:0 12px;border:1px solid transparent;background:#e8eef6;color:#0f172a;box-shadow:none}
+.pagination-btn:hover{background:#dbeafe;color:#1d4ed8}
+.pagination-btn.is-current{background:#2563eb;color:#fff;border-color:#2563eb;box-shadow:0 6px 14px rgba(37,99,235,.22)}
+.pagination-nav{min-width:92px;background:#fff;border-color:#dbe4f0;color:#334155}
+.pagination-ellipsis{display:inline-flex;align-items:center;justify-content:center;width:28px;height:42px;color:#94a3b8;font-weight:900}
+.pagination-mobile-status{display:none;min-width:70px;text-align:center;font-size:14px;font-weight:900;color:#334155;white-space:nowrap}
+
+@media(max-width:720px){
+  .pagination-row{gap:12px}
+  .pagination-settings{width:100%;justify-content:space-between}
+  .pagination-total{margin-left:auto}
+  #paginationArea.compact-pagination,#auditPagination.compact-pagination,#loginPagination.compact-pagination{width:100%;justify-content:space-between;gap:8px}
+  .pagination-pages{display:none}
+  .pagination-mobile-status{display:inline-flex;align-items:center;justify-content:center}
+  .pagination-nav{flex:1;min-width:0}
+}
