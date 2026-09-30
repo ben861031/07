@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.7.16">
+<link rel="stylesheet" href="./styles.css?v=1.8.0">
 </head>
 <body>
 
@@ -33,11 +33,14 @@
       </div>
 
       <div class="menu-title">郵件作業</div>
-      <div class="menu-item active" data-tooltip="郵件登錄" onclick="showPage('registerPage',this)">
-        <i data-lucide="square-pen" class="menu-icon"></i><span>郵件登錄</span>
+      <div class="menu-item active" data-tooltip="收件登錄" onclick="showPage('registerPage',this)">
+        <i data-lucide="square-pen" class="menu-icon"></i><span>收件登錄</span>
       </div>
       <div class="menu-item" data-tooltip="簽收單產生" onclick="openSheetPage(this)">
         <i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span>
+      </div>
+      <div class="menu-item" data-tooltip="一般寄件登錄" onclick="showPage('generalOutgoingPage',this); prepareGeneralOutgoingPage();">
+        <i data-lucide="mail-plus" class="menu-icon"></i><span>一般寄件登錄</span>
       </div>
       <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="showPage('outgoingPage',this); prepareOutgoingPage();">
         <i data-lucide="send" class="menu-icon"></i><span>大宗掛號寄件</span>
@@ -74,8 +77,8 @@
       <section id="registerPage" class="page">
         <div class="register-page-heading">
           <div>
-            <h1>郵件登錄</h1>
-            <p>登錄收到的郵件，完成後可繼續輸入同日期、類型與部門的下一筆。</p>
+            <h1>收件登錄</h1>
+            <p>登錄外部收到的郵件，完成後可繼續輸入同日期、類型與部門的下一筆。</p>
           </div>
         </div>
         <div class="kpi-grid compact-kpi-grid">
@@ -87,7 +90,7 @@
         <div class="panel outgoing-wide-panel">
           <div class="print-action-row page-action-header">
             <div>
-              <h2 class="detail-title"><i data-lucide="square-pen" class="detail-title-icon"></i>郵件登錄</h2>
+              <h2 class="detail-title"><i data-lucide="square-pen" class="detail-title-icon"></i>收件登錄</h2>
               <p class="page-desc">可一次輸入多筆郵件。填寫寄件人與收件人的列才會建檔。</p>
             </div>
             <div>
@@ -188,6 +191,61 @@
         </div>
       </section>
 
+      <section id="generalOutgoingPage" class="page hidden">
+        <div class="panel outgoing-wide-panel">
+          <div class="print-action-row page-action-header">
+            <div>
+              <h2 class="detail-title"><i data-lucide="mail-plus" class="detail-title-icon"></i>一般寄件登錄</h2>
+              <p class="page-desc">適用平信與少量掛號；掛號號碼可先留空，郵局交寄後再補登。</p>
+            </div>
+            <div class="general-outgoing-header-actions">
+              <span class="pending-outgoing-chip"><i data-lucide="clock-3"></i>待補號碼 <b id="generalOutgoingPendingCount">0</b></span>
+              <button class="btn btn-gray" onclick="resetGeneralOutgoingForm()"><i data-lucide="rotate-ccw"></i>清空重填</button>
+              <button class="btn btn-primary" onclick="saveGeneralOutgoingRecords()"><i data-lucide="save"></i>儲存寄件</button>
+            </div>
+          </div>
+          <div class="general-outgoing-meta">
+            <label class="form-group"><span>交寄日期</span><input type="date" id="generalOutgoingDate"></label>
+            <label class="form-group"><span>寄件部門</span><select id="generalOutgoingDepartment"><option value="">請選擇</option></select></label>
+            <label class="form-group"><span>寄件人</span><input type="text" id="generalOutgoingSender" placeholder="姓名或承辦人"></label>
+          </div>
+          <div class="incoming-help-line">
+            <i data-lucide="circle-help"></i>
+            <span>平信不需要單號；掛號、限掛與快捷未填號碼時，會自動標示為「待補號碼」。</span>
+          </div>
+          <div class="table-wrap general-outgoing-entry-wrap">
+            <table class="outgoing-entry-table general-outgoing-entry-table">
+              <thead>
+                <tr>
+                  <th style="width:42px">#</th>
+                  <th style="width:13%">郵件種類</th>
+                  <th style="width:18%">收件人／單位</th>
+                  <th>寄達地址</th>
+                  <th style="width:16%">掛號號碼</th>
+                  <th style="width:15%">備註</th>
+                  <th style="width:220px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="generalOutgoingRows"></tbody>
+            </table>
+          </div>
+          <div class="outgoing-entry-actions">
+            <span id="generalOutgoingItemCount">有效資料 0 件</span>
+          </div>
+        </div>
+
+        <div class="panel outgoing-history-panel outgoing-wide-panel">
+          <div class="general-outgoing-list-heading">
+            <div>
+              <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>最近一般寄件</h2>
+              <p class="page-desc">待補掛號號碼的郵件會優先顯示，可直接開啟補登。</p>
+            </div>
+            <button class="btn btn-gray" onclick="openOutgoingHistory()"><i data-lucide="search"></i>查看全部寄件</button>
+          </div>
+          <div id="generalOutgoingList" class="maintenance-list"></div>
+        </div>
+      </section>
+
       <section id="outgoingPage" class="page hidden">
         <div class="panel outgoing-wide-panel">
           <div class="print-action-row page-action-header">
@@ -249,10 +307,11 @@
             <div class="history-result-actions"><span class="record-count">共 <b id="recordCount">0</b> 筆</span><button class="btn btn-green" onclick="exportExcel()"><i data-lucide="file-spreadsheet"></i>匯出 Excel</button></div>
           </div>
           <div class="search-toolbar">
-            <div class="search-input-wrap"><i data-lucide="search"></i><input type="text" id="searchInput" class="search-main" placeholder="搜尋掛號編號、寄件人、收件人、部門、備註"></div>
+            <div class="search-input-wrap"><i data-lucide="search"></i><input type="text" id="searchInput" class="search-main" placeholder="搜尋掛號編號、寄件人、收件人、部門、地址、備註"></div>
             <div class="search-row">
-              <div class="filter-card"><i data-lucide="arrow-left-right"></i><select id="directionFilter"><option value="incoming">外部來信</option><option value="outgoing">大宗寄件</option></select></div>
+              <div class="filter-card"><i data-lucide="arrow-left-right"></i><select id="directionFilter"><option value="incoming">收件（外部來信）</option><option value="outgoing">寄件（公司寄出）</option></select></div>
               <div class="filter-card"><i data-lucide="mail"></i><select id="typeFilter"><option value="">全部類型</option></select></div>
+              <div class="filter-card outgoing-source-filter" hidden><i data-lucide="layers-3"></i><select id="outgoingSourceFilter"><option value="">全部寄件來源</option><option value="general">一般寄件</option><option value="bulk">大宗寄件</option></select></div>
               <div class="filter-card"><i data-lucide="building-2"></i><select id="deptFilter"><option value="">全部部門</option></select></div>
               <div class="filter-card"><i data-lucide="check-circle"></i><select id="printedFilter"><option value="">全部狀態</option><option value="unprinted">未列印</option><option value="printed">已列印</option></select></div>
               <button class="filter-advanced-btn" id="advancedFilterButton" aria-expanded="false" onclick="toggleAdvancedFilter()"><i data-lucide="sliders-horizontal"></i><span id="filterToggleText">進階篩選</span></button>
@@ -261,8 +320,8 @@
             <div id="advancedFilter">
               <div class="advanced-filter-layout">
                 <div class="advanced-date-row">
-                  <label class="date-filter-field"><span>收件日期起</span><input type="date" id="dateStart"></label>
-                  <label class="date-filter-field"><span>收件日期迄</span><input type="date" id="dateEnd"></label>
+                  <label class="date-filter-field"><span id="dateStartLabel">收件日期起</span><input type="date" id="dateStart"></label>
+                  <label class="date-filter-field"><span id="dateEndLabel">收件日期迄</span><input type="date" id="dateEnd"></label>
                 </div>
               </div>
             </div>
@@ -331,6 +390,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=1.7.16"></script>
+<script src="./app.js?v=1.8.0"></script>
 </body>
 </html>

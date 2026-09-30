@@ -360,3 +360,56 @@ button,input,select,textarea{font:inherit}
   .pagination-mobile-status{display:inline-flex;align-items:center;justify-content:center}
   .pagination-nav{flex:1;min-width:0}
 }
+
+/* v1.8.0：一般寄件、掛號號碼後補與下拉式快速跳頁 */
+.badge-gray{background:#eef2f7;color:#475569}
+.btn-yellow{background:#fff7d6;color:#8a5a00;border:1px solid #f6d77a;box-shadow:0 2px 6px rgba(138,90,0,.06)}
+.btn-yellow:hover{background:#ffefb5;color:#744800}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.general-outgoing-header-actions{align-items:center}
+.pending-outgoing-chip{display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 14px;border:1px solid #f6d77a;border-radius:12px;background:#fff9df;color:#8a5a00;font-size:13px;font-weight:800;white-space:nowrap}
+.pending-outgoing-chip svg{width:17px;height:17px}
+.pending-outgoing-chip b{display:grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:#f59e0b;color:#fff}
+.general-outgoing-meta{display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(220px,1fr) minmax(220px,1fr);gap:14px;margin:4px 0 2px}
+.general-outgoing-meta .form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.general-outgoing-meta .form-group>span{font-size:13px;font-weight:800;color:#475569}
+.general-outgoing-meta input,.general-outgoing-meta select{width:100%;height:52px;padding:0 16px;border:1px solid #dbe4f0;border-radius:14px;background:#fff;font-size:14px}
+.general-outgoing-meta input:focus,.general-outgoing-meta select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.08)}
+.general-outgoing-entry-table{min-width:1120px}
+.general-outgoing-entry-table th,.general-outgoing-entry-table td{padding:10px 8px}
+.general-outgoing-entry-table input,.general-outgoing-entry-table select{width:100%;height:42px;padding:0 11px;border:1px solid #dbe4f0;border-radius:10px;background:#fff;font-size:13px}
+.general-outgoing-entry-table input:focus,.general-outgoing-entry-table select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.general-outgoing-seq{text-align:center;font-weight:800;color:#64748b}
+.general-outgoing-entry-row.tracking-pending [data-field="trackingNo"]{border-color:#f6d77a;background:#fffdf5}
+.general-outgoing-list-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.general-outgoing-list-heading .detail-title{margin-bottom:2px}
+.general-outgoing-record>div:first-child{min-width:0}
+.general-outgoing-record>div:first-child>span:not(.badge){display:inline-block;max-width:900px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:13px}
+#historyPage .table-wrap table{min-width:1120px}
+.outgoing-source-filter[hidden]{display:none!important}
+#paginationArea.select-pagination,#auditPagination.select-pagination,#loginPagination.select-pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap}
+.select-pagination .pagination-nav{flex:0 0 auto;min-width:92px}
+.pagination-jump{display:block;position:relative}
+.pagination-page-select{height:42px;min-width:128px;padding:0 34px 0 12px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:#0f172a;font-size:14px;font-weight:800;cursor:pointer}
+.pagination-page-select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+
+@media(max-width:900px){
+  .general-outgoing-meta{grid-template-columns:1fr 1fr}
+  .general-outgoing-meta .form-group:first-child{grid-column:1/-1}
+}
+
+@media(max-width:720px){
+  .general-outgoing-header-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .general-outgoing-header-actions .pending-outgoing-chip{grid-column:1/-1;justify-content:center}
+  .general-outgoing-header-actions>.btn:last-child{grid-column:auto!important}
+  .general-outgoing-meta{grid-template-columns:1fr}
+  .general-outgoing-meta .form-group:first-child{grid-column:auto}
+  .general-outgoing-entry-table{min-width:1080px}
+  .general-outgoing-list-heading{align-items:stretch;flex-direction:column}
+  .general-outgoing-list-heading .btn{width:100%}
+  .general-outgoing-record>div:first-child>span:not(.badge){white-space:normal}
+  #paginationArea.select-pagination,#auditPagination.select-pagination,#loginPagination.select-pagination{justify-content:space-between}
+  .select-pagination .pagination-nav{flex:1;min-width:0;padding:0 6px;font-size:12px}
+  .pagination-jump{flex:0 1 132px}
+  .pagination-page-select{width:100%;min-width:0;padding-left:9px;padding-right:28px;font-size:13px}
+}
