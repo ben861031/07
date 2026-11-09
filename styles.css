@@ -503,3 +503,9 @@ button,input,select,textarea{font:inherit}
 .outgoing-entry-table.show-advanced{min-width:1500px}.outgoing-entry-table [data-field="postalTrackingNo"]{min-width:150px}
 @media(max-width:650px){.postal-suffix-strip,.postal-history-head{align-items:stretch;flex-direction:column}.postal-suffix-inputs{grid-template-columns:1fr 1fr}.postal-dialog{padding:18px}}
 @media print{.postal-dialog,.postal-suffix-strip{display:none!important}}
+.incoming-summary-panel{margin-top:22px}
+.incoming-summary-panel .detail-title{margin-bottom:16px}
+.incoming-summary-panel .compact-kpi-grid{margin:0}
+.incoming-summary-panel .kpi-card{background:#f8fafc;box-shadow:none;border-color:#e5edf6}
+.incoming-summary-panel .kpi-card-button:hover{background:#eff6ff;border-color:#bfdbfe}
+@media(max-width:720px){.page-action-header>div:first-child{flex:0 1 auto}.page-action-header>div:first-child .page-desc{flex:0 1 auto}}
