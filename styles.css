@@ -495,6 +495,14 @@ button,input,select,textarea{font:inherit}
 @media print{.excel-import-dialog,.general-import-bar,.history-list-controls,.history-list-pagination{display:none!important}}
 .postal-suffix-strip{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 0 6px;padding:14px 18px;border:1px solid #dbe7f7;border-radius:14px;background:#f7faff}
 .postal-suffix-strip>div{display:flex;flex-direction:column;gap:4px}.postal-suffix-strip strong{font-size:15px;color:#162e55}.postal-suffix-strip span{font-size:13px;color:#64748b}
+.postal-suffix-strip.is-confirmed{border-color:#93c5fd;background:#eff6ff}
+.postal-suffix-strip .postal-suffix-main{gap:8px;min-width:0}
+.postal-suffix-value-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.postal-suffix-strip .postal-suffix-badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:#e2e8f0;color:#475569;font-size:12px;font-weight:800;white-space:nowrap}
+.postal-suffix-strip.is-confirmed .postal-suffix-badge{background:#dcfce7;color:#166534}
+.postal-suffix-value-line code{color:#1d4ed8;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:23px;font-weight:800;letter-spacing:.08em;line-height:1.2;font-variant-numeric:tabular-nums}
+.postal-suffix-strip:not(.is-confirmed) .postal-suffix-value-line code{color:#64748b;font-family:inherit;font-size:15px;letter-spacing:0}
+.postal-suffix-main small{color:#64748b;font-size:12px;line-height:1.5}
 .postal-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.postal-history-head h2{margin:0}
 .postal-dialog{position:fixed;inset:auto;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;width:min(580px,calc(100vw - 24px));max-height:90vh;overflow:auto;padding:24px;border:1px solid #dbe4f0;border-radius:20px;box-shadow:0 24px 70px rgba(15,23,42,.26);color:#182b49}.postal-dialog::backdrop{background:rgba(15,23,42,.55)}
 .postal-dialog h2{font-size:21px;margin:0 0 12px}.postal-dialog .page-desc{font-size:14px;line-height:1.6;margin:8px 0;color:#64748b}
