@@ -427,7 +427,7 @@ button,input,select,textarea{font:inherit}
 .history-list-controls label{display:flex;flex-direction:column;gap:6px;min-width:185px;color:#64748b;font-size:12px;font-weight:800}
 .history-list-controls select{height:44px;padding:0 12px;border:1px solid #dbe4f0;border-radius:12px;background:#fff;color:#334155;font-size:14px}
 .history-list-count{margin-left:auto;padding-bottom:11px;color:#64748b;font-size:13px;font-weight:800}
-.history-list-pagination{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.history-list-pagination{display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:8px;margin-top:16px}
 .history-list-pagination:empty{display:none}
 .history-list-pagination .pagination-nav{min-width:92px}
 .excel-import-dialog{position:fixed;inset:0;width:min(1420px,calc(100vw - 32px));max-width:none;max-height:92vh;margin:auto;padding:0;border:1px solid #dbe4f0;border-radius:20px;background:#fff;color:#1e293b;box-shadow:0 24px 70px rgba(15,23,42,.25);overflow:hidden}
@@ -478,8 +478,8 @@ button,input,select,textarea{font:inherit}
   .history-list-controls label{min-width:0;flex:1 1 145px}
   .history-list-count{width:100%;margin:0;padding:0}
   .history-list-pagination{justify-content:space-between}
-  .history-list-pagination .pagination-nav{flex:1;min-width:0}
-  .history-list-pagination .pagination-jump{flex:1}
+  .history-list-pagination .pagination-nav{flex:0 1 72px;min-width:0;white-space:nowrap}
+  .history-list-pagination .pagination-jump{flex:1 1 0;min-width:0}
   .excel-import-dialog{width:calc(100vw - 12px);max-height:96vh;border-radius:14px}
   .excel-import-head,.excel-import-summary,.excel-import-mapping,.excel-import-footer{padding-left:14px;padding-right:14px}
   .excel-import-table-wrap{margin:0 14px}
@@ -487,4 +487,9 @@ button,input,select,textarea{font:inherit}
   .excel-import-footer{align-items:stretch;flex-direction:column}
   .excel-import-footer>div>*{flex:1}
 }
+@media(max-width:390px){.history-list-pagination .pagination-page-select{padding-left:6px;padding-right:20px;font-size:12px}}
+.postal-tracking-link{display:inline-flex;align-items:center;gap:4px;color:#2563eb;font-weight:800;text-decoration:none;white-space:nowrap}
+.postal-tracking-link:hover{text-decoration:underline;color:#1d4ed8}
+.postal-tracking-link:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:3px}
+.postal-tracking-link span{font-size:12px;line-height:1}
 @media print{.excel-import-dialog,.general-import-bar,.history-list-controls,.history-list-pagination{display:none!important}}
