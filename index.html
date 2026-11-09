@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.3">
+<link rel="stylesheet" href="./styles.css?v=1.9.4">
 </head>
 <body>
 
@@ -111,7 +111,7 @@
           </div>
           <div class="incoming-help-line">
             <i data-lucide="keyboard"></i>
-            <span>方向鍵／Enter 移動欄位；收件人可輸入關鍵字或展開近期名單</span>
+            <span>方向鍵／Enter 移動欄位；寄件人與收件人可輸入關鍵字或展開建議名單</span>
           </div>
           <div class="table-wrap outgoing-entry-wrap">
             <table class="outgoing-entry-table incoming-entry-table">
@@ -129,6 +129,7 @@
               <tbody id="incomingEntryRows"></tbody>
             </table>
           </div>
+          <datalist id="incomingSenderOptions"></datalist>
           <div class="outgoing-entry-actions">
             <span id="incomingItemCount">有效資料 0 件</span>
           </div>
@@ -443,6 +444,6 @@
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.0"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.3"></script>
+<script src="./app.js?v=1.9.4"></script>
 </body>
 </html>
