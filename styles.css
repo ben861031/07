@@ -538,4 +538,15 @@ button,input,select,textarea{font:inherit}
 .outgoing-row-tool:disabled{opacity:.35;cursor:default}
 .outgoing-row-delete{border-color:#fecaca;color:#b91c1c}
 .outgoing-row-delete:hover:not(:disabled){border-color:#fca5a5;background:#fff1f2;color:#b91c1c}
+#outgoingPage .outgoing-entry-table.show-advanced{min-width:1620px}
+#outgoingPage .outgoing-entry-table.show-advanced.show-roster-actions{min-width:1800px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(1){width:54px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(2){width:142px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(3){width:200px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(4){width:350px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(5),#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(6){width:72px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(7),#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(8){width:94px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(9){width:180px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(10){width:192px}
+#outgoingPage .outgoing-entry-table.show-advanced th:nth-child(11){width:182px}
 @media(max-width:720px){.outgoing-history-panel .maintenance-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.outgoing-history-panel .maintenance-actions .btn{padding-inline:6px;font-size:12px}}
