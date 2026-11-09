@@ -509,3 +509,25 @@ button,input,select,textarea{font:inherit}
 .incoming-summary-panel .kpi-card{background:#f8fafc;box-shadow:none;border-color:#e5edf6}
 .incoming-summary-panel .kpi-card-button:hover{background:#eff6ff;border-color:#bfdbfe}
 @media(max-width:720px){.page-action-header>div:first-child{flex:0 1 auto}.page-action-header>div:first-child .page-desc{flex:0 1 auto}}
+.incoming-form-message{margin-top:14px;padding:12px 15px;border-radius:12px;font-size:13px;font-weight:700;line-height:1.6}
+.incoming-form-message[hidden]{display:none}
+.incoming-form-error{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c}
+.incoming-form-success{border:1px solid #bbf7d0;background:#f0fdf4;color:#166534}
+.incoming-form-warning{border-color:#fde68a;background:#fffbeb;color:#92400e}
+.incoming-entry-row.incoming-row-invalid{background:#fff7f7}
+.incoming-entry-row .incoming-field-invalid,.incoming-entry-row .incoming-field-invalid:focus,#receiveDate.incoming-field-invalid,#receiveDate.incoming-field-invalid:focus{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.12);outline:none}
+.outgoing-copy-notice{margin:0 0 14px;padding:12px 15px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:13px;font-weight:700;line-height:1.6}
+.outgoing-copy-notice[hidden]{display:none}
+.outgoing-entry-table .outgoing-roster-col{display:none}
+.outgoing-entry-table.show-roster-actions{min-width:900px}
+.outgoing-entry-table.show-roster-actions.show-advanced{min-width:1690px}
+.outgoing-entry-table.show-roster-actions .outgoing-roster-col{display:table-cell;width:182px;min-width:182px;text-align:center}
+.outgoing-seq-cell{text-align:center;white-space:nowrap}
+.outgoing-row-tools{display:none;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+.outgoing-entry-table.show-roster-actions .outgoing-entry-row.has-roster-entry .outgoing-row-tools{display:inline-flex}
+.outgoing-row-tool{min-width:49px;height:32px;padding:0 6px;border:1px solid #d5dfeb;border-radius:8px;background:#fff;color:#334155;font-size:12px;font-weight:700;cursor:pointer}
+.outgoing-row-tool:hover:not(:disabled){border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+.outgoing-row-tool:disabled{opacity:.35;cursor:default}
+.outgoing-row-delete{border-color:#fecaca;color:#b91c1c}
+.outgoing-row-delete:hover:not(:disabled){border-color:#fca5a5;background:#fff1f2;color:#b91c1c}
+@media(max-width:720px){.outgoing-history-panel .maintenance-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.outgoing-history-panel .maintenance-actions .btn{padding-inline:6px;font-size:12px}}

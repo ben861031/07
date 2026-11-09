@@ -16,10 +16,12 @@ let mailRecords=[],generalOutgoingRecords=[],outgoingBatches=[],departmentList=[
 let currentPage=1,pageSize=10,auditCurrentPage=1,auditPageSize=25,loginCurrentPage=1,loginPageSize=10;
 let selectedSheetRecords=[],sheetMode="normal",activeReprintBatchNo="",activeReprintLabel="";
 let incomingSuggestionListSerial=0;
+let incomingSaveInProgress=false;
 const HISTORY_LIST_PAGE_SIZE=10;
 const historyListPages={print:1,general:1,bulk:1};
 let excelImportWorkbook=null,excelImportRows=[],excelImportMapping={},excelImportBusy=false,excelImportCurrentSheet="";
 let outgoingSuffixPrompted=false;
+let outgoingCopiedDraft=false,outgoingSequenceSeed="";
 
 function $(id){return document.getElementById(id)}
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
@@ -139,14 +141,17 @@ function refreshIncomingRows(){
     if(isComplete) count++;
   });
   $("incomingItemCount").textContent=`有效資料 ${count} 件`;
+  if(!$("incomingValidationMessage").hidden)validateIncomingForm(false);
 }
 function bindIncomingGrid(){
   const body=$("incomingEntryRows");
-  body.oninput=refreshIncomingRows;
+  body.oninput=()=>{hideIncomingSaveStatus();refreshIncomingRows()};
   body.onchange=event=>{
     if(event.target?.dataset?.field==="department")refreshIncomingReceiverSuggestions(event.target.closest("tr"));
+    hideIncomingSaveStatus();
     refreshIncomingRows();
   };
+  $("receiveDate").onchange=()=>{hideIncomingSaveStatus();if(!$("incomingValidationMessage").hidden)validateIncomingForm(false)};
   body.onkeydown=event=>{
     if(event.target?.dataset?.field&&["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(event.key)){
       event.preventDefault();
@@ -209,13 +214,19 @@ function applyIncomingDefaults(){
 
 function resetMailForm(){
   $("receiveDate").value=todayStr();
+  hideIncomingValidation();
+  hideIncomingSaveStatus();
   renderIncomingRows([]);
 } window.resetMailForm=resetMailForm;
 
-function getIncomingItems(){
-  return [...document.querySelectorAll(".incoming-entry-row")].map(row=>{
+function hideIncomingValidation(){const box=$("incomingValidationMessage");box.hidden=true;box.textContent="";$("receiveDate").classList.remove("incoming-field-invalid");$("receiveDate").removeAttribute("aria-invalid")}
+function hideIncomingSaveStatus(){const box=$("incomingSaveStatus");box.hidden=true;box.textContent="";box.classList.remove("incoming-form-warning")}
+function showIncomingSaveStatus(message,warning=false){const box=$("incomingSaveStatus");box.textContent=message;box.hidden=false;box.classList.toggle("incoming-form-warning",warning)}
+function setIncomingSaving(saving){incomingSaveInProgress=saving;$("saveIncomingButton").disabled=saving;$("incomingResetButton").disabled=saving;$("receiveDate").disabled=saving;document.querySelectorAll("#incomingEntryRows input,#incomingEntryRows select,#incomingEntryRows button,.incoming-apply-action").forEach(control=>control.disabled=saving)}
+function readIncomingEntries(){
+  return [...document.querySelectorAll(".incoming-entry-row")].map((row,index)=>{
     const get=name=>row.querySelector(`[data-field="${name}"]`).value.trim();
-    return {
+    return {row,index,item:{
       id: row.dataset.id||"",
       mailType: get("mailType"),
       trackingNo: get("trackingNo"),
@@ -223,39 +234,78 @@ function getIncomingItems(){
       department: get("department"),
       receiver: get("receiver"),
       remark: get("remark")
-    }
-  }).filter(item=>item.sender&&item.receiver&&item.department);
+    }}
+  });
+}
+function validateIncomingForm(focusError=true){
+  const entries=readIncomingEntries(),issues=[],ready=[];
+  const date=$("receiveDate").value;
+  $("receiveDate").classList.toggle("incoming-field-invalid",!date);
+  if(date)$("receiveDate").removeAttribute("aria-invalid");else $("receiveDate").setAttribute("aria-invalid","true");
+  for(const entry of entries){
+    const {row,item,index}=entry;
+    const started=Boolean(item.id||item.trackingNo||item.sender||item.receiver||item.remark);
+    const missing=started?[["sender","寄件人／寄件單位"],["department","收件部門"],["receiver","收件人"]].filter(([field])=>!item[field]):[];
+    row.classList.toggle("incoming-row-invalid",missing.length>0);
+    for(const field of ["sender","department","receiver"]){const control=row.querySelector(`[data-field="${field}"]`),invalid=missing.some(([name])=>name===field);control.classList.toggle("incoming-field-invalid",invalid);if(invalid)control.setAttribute("aria-invalid","true");else control.removeAttribute("aria-invalid")}
+    if(missing.length)issues.push({index:index+1,row,missing});else if(started)ready.push(entry);
+  }
+  const box=$("incomingValidationMessage");
+  if(!date)box.textContent="請先填寫收件日期。";
+  else if(issues.length){const detail=issues.slice(0,4).map(issue=>`第 ${issue.index} 列缺少${issue.missing.map(([,label])=>label).join("、")}`).join("；");box.textContent=`${detail}${issues.length>4?`；另有 ${issues.length-4} 列未完成`:""}。請補齊後再儲存。`}
+  else if(!ready.length)box.textContent="請至少填寫一筆郵件的寄件人、收件部門與收件人。";
+  else if(ready.length>500)box.textContent="單次最多儲存 500 筆；請分批登錄。";
+  else box.textContent="";
+  box.hidden=!box.textContent;
+  if(box.textContent&&focusError){const target=!date?$("receiveDate"):issues.length?issues[0].row.querySelector(`[data-field="${issues[0].missing[0][0]}"]`):entries[0]?.row.querySelector('[data-field="sender"]');target?.focus();target?.scrollIntoView({block:"center",behavior:"smooth"})}
+  return {valid:!box.textContent,entries:ready,date};
 }
 
 async function saveMailRecord(){
-  const date=$("receiveDate").value;
-  if(!date){alert("請填寫收件日期");return}
-  const items=getIncomingItems();
-  if(!items.length){alert("請至少完整填寫一筆郵件資料（需包含寄件人、收件部門、收件人）");return}
-  
+  if(incomingSaveInProgress)return;
+  const {valid,entries,date}=validateIncomingForm();
+  if(!valid)return;
+  const last=entries[entries.length-1].item;
+  setIncomingSaving(true);
   try{
     let added=0, updated=0;
-    let baseTime = Date.now();
-    for(const item of items){
+    let baseTime=Date.now();
+    const batch=writeBatch(db),audits=[];
+    for(const {row,item} of entries){
       const data={receiveDate:date, mailType:item.mailType, trackingNo:item.trackingNo, sender:item.sender, department:item.department, receiver:item.receiver, remark:item.remark};
       if(item.id){
         const before=mailRecords.find(r=>r.id===item.id);
-        await updateDoc(doc(db,"mailRecords",item.id),data);
-        await writeAuditLog({action:"update",category:"mailRecord",targetId:item.id,targetLabel:mailLabel(data),before,after:{...before,...data}});
+        batch.update(doc(db,"mailRecords",item.id),data);
+        audits.push({action:"update",targetId:item.id,targetLabel:mailLabel(data),before,after:{...before,...data}});
         updated++;
       }else{
-        baseTime += 1; // 保證每筆資料建立時間嚴格遞增，確保排序正確
-        const ref=await addDoc(collection(db,"mailRecords"),{...data,printed:false,createdBy:currentUser,createdByEmail:currentUserEmail,createdTime:new Date(baseTime)});
-        await writeAuditLog({action:"create",category:"mailRecord",targetId:ref.id,targetLabel:mailLabel(data),after:{...data,printed:false}});
+        const ref=row.dataset.pendingId?doc(db,"mailRecords",row.dataset.pendingId):doc(collection(db,"mailRecords"));
+        row.dataset.pendingId=ref.id;
+        if(!row.dataset.pendingCreatedTime)row.dataset.pendingCreatedTime=new Date(++baseTime).toISOString();
+        const createData={...data,printed:false,createdBy:currentUser,createdByEmail:currentUserEmail,createdTime:new Date(row.dataset.pendingCreatedTime)};
+        batch.set(ref,createData);
+        audits.push({action:"create",targetId:ref.id,targetLabel:mailLabel(data),after:{...data,printed:false}});
         added++;
       }
     }
-    alert(`儲存成功！共新增 ${added} 筆，更新 ${updated} 筆郵件。`);
-    resetMailForm();
-    await loadMailRecords();
+    await batch.commit();
+    hideIncomingValidation();
+    $("receiveDate").value=date;
+    renderIncomingRows([{mailType:last.mailType,department:last.department}]);
+    showIncomingSaveStatus(`已儲存：新增 ${added} 筆、更新 ${updated} 筆。可直接輸入下一筆。`);
+    setIncomingSaving(false);
+    $("incomingEntryRows").querySelector('[data-field="trackingNo"]')?.focus();
+    const auditJob=(async()=>{const auditBatch=writeBatch(db);for(const audit of audits)auditBatch.set(doc(collection(db,"mailAuditLogs")),{actorName:currentUser,actorEmail:currentUserEmail,actorRole:currentRole,action:audit.action,category:"mailRecord",targetId:audit.targetId,targetLabel:audit.targetLabel,before:compact(audit.before),after:compact(audit.after),createdAt:new Date()});await auditBatch.commit()})();
+    const [reloadResult,auditResult]=await Promise.allSettled([loadMailRecords(),auditJob]);
+    const warnings=[];
+    if(reloadResult.status==="rejected"){console.error("儲存後清單更新失敗",reloadResult.reason);warnings.push("清單更新失敗，請重新整理查看")}
+    if(auditResult.status==="rejected"){console.error("儲存後操作紀錄寫入失敗",auditResult.reason);warnings.push("操作紀錄更新失敗，請通知管理員")}
+    if(warnings.length)showIncomingSaveStatus(`郵件已儲存 ${added+updated} 筆，但${warnings.join("；")}。`,true);
   }catch(e){
     console.error(e);
-    alert("儲存失敗：" + (e.message||e));
+    const box=$("incomingValidationMessage");box.textContent="這次提交未確認成功，原輸入內容已保留。請先核對郵件查詢，再重試："+(e.message||e);box.hidden=false;
+  }finally{
+    if(incomingSaveInProgress)setIncomingSaving(false);
   }
 } window.saveMailRecord=saveMailRecord;
 
@@ -263,6 +313,8 @@ function editMail(id){
   const r=mailRecords.find(x=>x.id===id);
   if(!r)return;
   showPage("registerPage",document.querySelector('[onclick*=registerPage]'));
+  hideIncomingValidation();
+  hideIncomingSaveStatus();
   $("receiveDate").value=r.receiveDate||todayStr();
   renderIncomingRows([r]);
 } window.editMail=editMail;
@@ -668,16 +720,19 @@ function renderPrintBatchHistory(){
 }
 function openPrintBatch(batchNo){const records=mailRecords.filter(r=>r.printed&&r.printBatchNo===batchNo);prepareReprint(records,{batchNo,label:`原列印批次 ${batchNo}`})} window.openPrintBatch=openPrintBatch;
 
-function outgoingRowHtml(item={}){return `<tr class="outgoing-entry-row"><td class="outgoing-seq"></td><td><input data-field="trackingNo" value="${esc(item.trackingNo||"")}" inputmode="numeric" maxlength="6"></td><td><input data-field="receiverName" value="${esc(item.receiverName||"")}"></td><td><input data-field="address" value="${esc(item.address||"")}"></td><td class="outgoing-advanced-col"><input type="checkbox" data-field="returnReceipt" ${item.returnReceipt?"checked":""}></td><td class="outgoing-advanced-col"><input type="checkbox" data-field="printedMatter" ${item.printedMatter?"checked":""}></td><td class="outgoing-advanced-col"><input data-field="weight" value="${esc(item.weight||"")}"></td><td class="outgoing-advanced-col"><input data-field="postage" value="${esc(item.postage||"")}"></td><td class="outgoing-advanced-col"><input data-field="contents" value="${esc(item.contents||"")}"></td><td class="outgoing-advanced-col"><input data-field="postalTrackingNo" inputmode="numeric" maxlength="20" placeholder="個別完整 14／20 碼" value="${esc(item.postalTrackingNo||"")}"></td></tr>`}
+function outgoingRowHtml(item={}){return `<tr class="outgoing-entry-row"><td class="outgoing-seq-cell"><span class="outgoing-seq"></span></td><td><input data-field="trackingNo" value="${esc(item.trackingNo||"")}" inputmode="numeric" maxlength="6"></td><td><input data-field="receiverName" value="${esc(item.receiverName||"")}"></td><td><input data-field="address" value="${esc(item.address||"")}"></td><td class="outgoing-advanced-col"><input type="checkbox" data-field="returnReceipt" ${item.returnReceipt?"checked":""}></td><td class="outgoing-advanced-col"><input type="checkbox" data-field="printedMatter" ${item.printedMatter?"checked":""}></td><td class="outgoing-advanced-col"><input data-field="weight" value="${esc(item.weight||"")}"></td><td class="outgoing-advanced-col"><input data-field="postage" value="${esc(item.postage||"")}"></td><td class="outgoing-advanced-col"><input data-field="contents" value="${esc(item.contents||"")}"></td><td class="outgoing-advanced-col"><input data-field="postalTrackingNo" inputmode="numeric" maxlength="20" placeholder="個別完整 14／20 碼" value="${esc(item.postalTrackingNo||"")}"></td><td class="outgoing-roster-col"><span class="outgoing-row-tools"><button type="button" class="outgoing-row-tool" aria-label="上移這筆" onclick="moveOutgoingRosterRow(this,-1)">上移</button><button type="button" class="outgoing-row-tool" aria-label="下移這筆" onclick="moveOutgoingRosterRow(this,1)">下移</button><button type="button" class="outgoing-row-tool outgoing-row-delete" aria-label="刪除這筆" onclick="deleteOutgoingRosterRow(this)">刪除</button></span></td></tr>`}
 function outgoingRawItems(){return [...document.querySelectorAll("#outgoingEntryRows .outgoing-entry-row")].map((row,index)=>{const get=name=>row.querySelector(`[data-field="${name}"]`);return {row:index+1,trackingNo:get("trackingNo").value.trim(),receiverName:get("receiverName").value.trim(),address:get("address").value.trim(),returnReceipt:get("returnReceipt").checked,printedMatter:get("printedMatter").checked,weight:get("weight").value.trim(),postage:get("postage").value.trim(),contents:get("contents").value.trim(),postalTrackingNo:get("postalTrackingNo").value.trim()}})}
-function refreshOutgoingRows(){const rows=[...document.querySelectorAll("#outgoingEntryRows .outgoing-entry-row")];rows.forEach((row,index)=>{row.querySelector(".outgoing-seq").textContent=index+1;const receiver=row.querySelector('[data-field="receiverName"]').value.trim(),address=row.querySelector('[data-field="address"]').value.trim();row.classList.toggle("is-complete",Boolean(receiver&&address));row.classList.toggle("is-incomplete",Boolean(receiver)!==Boolean(address))});$("outgoingItemCount").textContent=`有效資料 ${rows.filter(row=>row.classList.contains("is-complete")).length} 件／共 20 列`}
+function refreshOutgoingRows(){const rows=[...document.querySelectorAll("#outgoingEntryRows .outgoing-entry-row")];$("outgoingEntryRows").closest("table").classList.toggle("show-roster-actions",outgoingCopiedDraft&&!$("outgoingBatchId").value);rows.forEach((row,index)=>{row.querySelector(".outgoing-seq").textContent=index+1;const receiver=row.querySelector('[data-field="receiverName"]').value.trim(),address=row.querySelector('[data-field="address"]').value.trim();row.classList.toggle("is-complete",Boolean(receiver&&address));row.classList.toggle("is-incomplete",Boolean(receiver)!==Boolean(address));row.classList.toggle("has-roster-entry",Boolean(receiver||address))});const active=rows.filter(row=>row.classList.contains("has-roster-entry"));active.forEach((row,index)=>{const buttons=row.querySelectorAll(".outgoing-row-tool");buttons[0].disabled=index===0;buttons[1].disabled=index===active.length-1});$("outgoingItemCount").textContent=`有效資料 ${rows.filter(row=>row.classList.contains("is-complete")).length} 件／共 20 列`}
 function nextTrackingNo(value){const text=String(value||"").trim();if(!/^\d+$/.test(text))return "";return String(BigInt(text)+1n).padStart(text.length,"0")}
-function fillOutgoingTrackingFrom(source){const rows=[...document.querySelectorAll("#outgoingEntryRows .outgoing-entry-row")],start=rows.indexOf(source.closest("tr"));let previous=source.value.trim();delete source.dataset.autoTracking;for(let index=start+1;index<rows.length;index++){const input=rows[index].querySelector('[data-field="trackingNo"]');if(input.value.trim()&&!input.dataset.autoTracking){previous=input.value.trim();continue}const next=nextTrackingNo(previous);input.value=next;if(next)input.dataset.autoTracking="true";else delete input.dataset.autoTracking;previous=next}}
+function resequenceOutgoingTracking(){if(!outgoingCopiedDraft||!/^\d{6}$/.test(outgoingSequenceSeed))return;const rows=[...document.querySelectorAll("#outgoingEntryRows .outgoing-entry-row")];let next=BigInt(outgoingSequenceSeed);for(const row of rows){const input=row.querySelector('[data-field="trackingNo"]'),receiver=row.querySelector('[data-field="receiverName"]').value.trim(),address=row.querySelector('[data-field="address"]').value.trim();if(receiver&&address&&next<=999999n){input.value=String(next++).padStart(6,"0");input.dataset.autoTracking="true"}else{input.value="";delete input.dataset.autoTracking}}refreshOutgoingRows()}
+function fillOutgoingTrackingFrom(source){const rows=[...document.querySelectorAll("#outgoingEntryRows .outgoing-entry-row")],sourceRow=source.closest("tr"),start=rows.indexOf(sourceRow);if(outgoingCopiedDraft){const firstActive=rows.find(row=>row.querySelector('[data-field="receiverName"]').value.trim()&&row.querySelector('[data-field="address"]').value.trim())||rows[0];if(sourceRow===firstActive||!outgoingSequenceSeed)outgoingSequenceSeed=source.value.trim();if(/^\d{6}$/.test(outgoingSequenceSeed))resequenceOutgoingTracking();else if(sourceRow===firstActive)rows.filter(row=>row!==sourceRow).forEach(row=>{const input=row.querySelector('[data-field="trackingNo"]');input.value="";delete input.dataset.autoTracking});return}let previous=source.value.trim();delete source.dataset.autoTracking;for(let index=start+1;index<rows.length;index++){const input=rows[index].querySelector('[data-field="trackingNo"]');if(input.value.trim()&&!input.dataset.autoTracking){previous=input.value.trim();continue}const next=nextTrackingNo(previous);input.value=next;if(next)input.dataset.autoTracking="true";else delete input.dataset.autoTracking;previous=next}}
 function outgoingGridFields(){return $("outgoingEntryRows").closest("table").classList.contains("show-advanced")?["trackingNo","receiverName","address","returnReceipt","printedMatter","weight","postage","contents","postalTrackingNo"]:["trackingNo","receiverName","address"]}
 function moveOutgoingCell(input,key){const rows=[...document.querySelectorAll("#outgoingEntryRows .outgoing-entry-row")],rowIndex=rows.indexOf(input.closest("tr")),fields=outgoingGridFields(),fieldIndex=fields.indexOf(input.dataset.field);if(rowIndex<0||fieldIndex<0)return;let nextRow=rowIndex,nextField=fieldIndex;if(key==="ArrowUp")nextRow--;if(key==="ArrowDown"||key==="Enter")nextRow++;if(key==="ArrowLeft")nextField--;if(key==="ArrowRight")nextField++;if(nextField<0){nextRow--;nextField=fields.length-1}if(nextField>=fields.length){nextRow++;nextField=0}if(nextRow<0||nextRow>=rows.length)return;const target=rows[nextRow].querySelector(`[data-field="${fields[nextField]}"]`);if(target){target.focus();if(target.select&&target.type!=="checkbox")target.select()}}
-function bindOutgoingGrid(){const body=$("outgoingEntryRows");body.oninput=event=>{if(event.target.dataset.field==="trackingNo")fillOutgoingTrackingFrom(event.target);refreshOutgoingRows()};body.onchange=refreshOutgoingRows;body.onkeydown=event=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(event.key)){event.preventDefault();moveOutgoingCell(event.target,event.key)}}}
+function bindOutgoingGrid(){const body=$("outgoingEntryRows");body.oninput=event=>{if(event.target.dataset.field==="trackingNo")fillOutgoingTrackingFrom(event.target);else if(outgoingCopiedDraft&&["receiverName","address"].includes(event.target.dataset.field))resequenceOutgoingTracking();refreshOutgoingRows()};body.onchange=refreshOutgoingRows;body.onkeydown=event=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(event.key)){event.preventDefault();moveOutgoingCell(event.target,event.key)}}}
 function toggleOutgoingAdvanced(){const table=$("outgoingEntryRows").closest("table"),show=table.classList.toggle("show-advanced");$("outgoingAdvancedToggle").textContent=show?"隱藏進階欄位":"顯示進階欄位"} window.toggleOutgoingAdvanced=toggleOutgoingAdvanced;
-function getOutgoingItems(){return outgoingRawItems().filter(item=>item.receiverName&&item.address).map(({row,...item})=>item)}
+function getOutgoingItems(){if(outgoingCopiedDraft&&/^\d{6}$/.test(outgoingSequenceSeed))resequenceOutgoingTracking();return outgoingRawItems().filter(item=>item.receiverName&&item.address).map(({row,...item})=>item)}
+function moveOutgoingRosterRow(button,direction){if(!outgoingCopiedDraft||$("outgoingBatchId").value)return;const row=button.closest("tr"),active=[...$("outgoingEntryRows").querySelectorAll(".outgoing-entry-row.has-roster-entry")],index=active.indexOf(row),target=active[index+direction];if(!target)return;if(direction<0)target.before(row);else target.after(row);if(outgoingSequenceSeed)resequenceOutgoingTracking();else refreshOutgoingRows()} window.moveOutgoingRosterRow=moveOutgoingRosterRow;
+function deleteOutgoingRosterRow(button){if(!outgoingCopiedDraft||$("outgoingBatchId").value)return;const row=button.closest("tr"),receiver=row.querySelector('[data-field="receiverName"]').value.trim();if(!confirm(`確定刪除${receiver?`「${receiver}」`:"這"}筆名單？`))return;row.remove();$("outgoingEntryRows").insertAdjacentHTML("beforeend",outgoingRowHtml());if(outgoingSequenceSeed)resequenceOutgoingTracking();else refreshOutgoingRows()} window.deleteOutgoingRosterRow=deleteOutgoingRosterRow;
 const OUTGOING_SENDER_PROFILES_KEY="mailOutgoingSenderProfiles";
 function outgoingSenderProfiles(){try{const profiles=JSON.parse(localStorage.getItem(OUTGOING_SENDER_PROFILES_KEY)||"[]");return Array.isArray(profiles)?profiles:[]}catch(error){console.error("寄件人範本讀取失敗",error);return[]}}
 function renderOutgoingSenderProfiles(selectedId=$("outgoingSenderProfile")?.value||""){const select=$("outgoingSenderProfile");if(!select)return;const profiles=outgoingSenderProfiles();select.innerHTML='<option value="">選擇寄件人範本</option>'+profiles.map(profile=>`<option value="${esc(profile.id)}">${esc(profile.label)}</option>`).join("");select.value=profiles.some(profile=>profile.id===selectedId)?selectedId:"";$("deleteSenderProfileButton").disabled=!select.value}
@@ -693,12 +748,13 @@ function prepareOutgoingPage(){renderOutgoingSenderProfiles();if(!$("outgoingDat
 window.prepareOutgoingPage=prepareOutgoingPage;
 function startNewOutgoingForm(){const hasInput=outgoingRawItems().some(item=>item.trackingNo||item.receiverName||item.address||item.weight||item.postage||item.contents);if(hasInput&&!confirm("目前填寫的寄件明細將會清除，確定要清空重填嗎？"))return;resetOutgoingForm();openOutgoingSuffixDialog()} window.startNewOutgoingForm=startNewOutgoingForm;
 function renderOutgoingRows(items=[]){const rows=items.slice(0,20);while(rows.length<20)rows.push({});$("outgoingEntryRows").innerHTML=rows.map(outgoingRowHtml).join("");bindOutgoingGrid();refreshOutgoingRows()}
-function resetOutgoingForm(){["outgoingBatchId","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone","outgoingPostalSuffix8"].forEach(id=>$(id).value="");$("outgoingDate").value=todayStr();$("outgoingType").value="掛號函件";$("outgoingSenderName").value=localStorage.getItem("outgoingSenderName")||"";$("outgoingRepresentative").value=localStorage.getItem("outgoingRepresentative")||"";$("outgoingSenderAddress").value=localStorage.getItem("outgoingSenderAddress")||"";$("outgoingSenderPhone").value=localStorage.getItem("outgoingSenderPhone")||"";outgoingSuffixPrompted=false;updateOutgoingSuffixStatus();renderOutgoingRows()} window.resetOutgoingForm=resetOutgoingForm;
+function resetOutgoingForm(){["outgoingBatchId","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone","outgoingPostalSuffix8"].forEach(id=>$(id).value="");$("outgoingDate").value=todayStr();$("outgoingType").value="掛號函件";$("outgoingSenderName").value=localStorage.getItem("outgoingSenderName")||"";$("outgoingRepresentative").value=localStorage.getItem("outgoingRepresentative")||"";$("outgoingSenderAddress").value=localStorage.getItem("outgoingSenderAddress")||"";$("outgoingSenderPhone").value=localStorage.getItem("outgoingSenderPhone")||"";outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;outgoingSuffixPrompted=false;updateOutgoingSuffixStatus();renderOutgoingRows()} window.resetOutgoingForm=resetOutgoingForm;
 function outgoingFormData(){return {sendDate:$("outgoingDate").value,mailType:$("outgoingType").value,senderName:$("outgoingSenderName").value.trim(),representative:$("outgoingRepresentative").value.trim(),senderAddress:$("outgoingSenderAddress").value.trim(),senderPhone:$("outgoingSenderPhone").value.trim(),postalSuffix8:$("outgoingPostalSuffix8").value,items:getOutgoingItems()}}
-function validateOutgoing(data){if(!data.sendDate||!data.senderName){alert("請填寫交寄日期與公司名稱");return false}const incomplete=outgoingRawItems().filter(item=>Boolean(item.receiverName)!==Boolean(item.address));if(incomplete.length&&!confirm(`第 ${incomplete.map(item=>item.row).join("、")} 列只填寫了收件人或寄達地名，這些列不會建檔。是否繼續？`))return false;if(!data.items.length){alert("請至少完整填寫一筆收件人姓名與寄達地名");return false}if(!/^\d{6}$/.test(data.items[0].trackingNo)){alert("第一筆有效資料的掛號編號須為 6 碼");return false}const bad=data.items.find(item=>item.trackingNo&&!/^\d{6}$/.test(item.trackingNo));if(bad){alert("大宗掛號編號請填前 6 碼；完整碼請使用後 8 碼或進階欄位");return false}if(data.postalSuffix8&&!PostalTracking.validSuffix(data.postalSuffix8)){alert("郵局查詢後 8 碼格式錯誤");return false}const badOverride=data.items.find(item=>item.postalTrackingNo&&(!PostalTracking.validFull(item.postalTrackingNo)||!item.postalTrackingNo.startsWith(item.trackingNo)));if(badOverride){alert("個別完整碼須為 14 或 20 碼，且前 6 碼與該列相同");return false}return true}
+function validateOutgoing(data){if(!data.sendDate||!data.senderName){alert("請填寫交寄日期與公司名稱");return false}const incomplete=outgoingRawItems().filter(item=>Boolean(item.receiverName)!==Boolean(item.address));if(incomplete.length&&!confirm(`第 ${incomplete.map(item=>item.row).join("、")} 列只填寫了收件人或寄達地名，這些列不會建檔。是否繼續？`))return false;if(!data.items.length){alert("請至少完整填寫一筆收件人姓名與寄達地名");return false}if(!/^\d{6}$/.test(data.items[0].trackingNo)){alert("第一筆有效資料的掛號編號須為 6 碼");return false}if(outgoingCopiedDraft&&data.items.some(item=>!/^\d{6}$/.test(item.trackingNo))){alert("新批次掛號編號未能完成六碼連號，請檢查首碼是否接近 999999");return false}const bad=data.items.find(item=>item.trackingNo&&!/^\d{6}$/.test(item.trackingNo));if(bad){alert("大宗掛號編號請填前 6 碼；完整碼請使用後 8 碼或進階欄位");return false}if(data.postalSuffix8&&!PostalTracking.validSuffix(data.postalSuffix8)){alert("郵局查詢後 8 碼格式錯誤");return false}const badOverride=data.items.find(item=>item.postalTrackingNo&&(!PostalTracking.validFull(item.postalTrackingNo)||!item.postalTrackingNo.startsWith(item.trackingNo)));if(badOverride){alert("個別完整碼須為 14 或 20 碼，且前 6 碼與該列相同");return false}return true}
 function makeOutgoingBatchNo(data){return `OUT-${data.sendDate.replaceAll("-","")}-${data.items[0].trackingNo}`}
-async function saveOutgoingBatch(){const id=$("outgoingBatchId").value,data=outgoingFormData();if(!validateOutgoing(data))return;["outgoingSenderName","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone"].forEach(id=>localStorage.setItem(id,$(id).value.trim()));try{if(id){const before=outgoingBatches.find(b=>b.id===id);await updateDoc(doc(db,"outgoingMailBatches",id),{...data,updatedTime:new Date(),updatedBy:currentUser});await writeAuditLog({action:"update",category:"outgoingMailBatch",targetId:id,targetLabel:before?.batchNo||id,before,after:data})}else{const batchNo=makeOutgoingBatchNo(data);if(outgoingBatches.some(batch=>batch.batchNo===batchNo)){alert(`寄件紀錄編號 ${batchNo} 已存在，請確認交寄日期或第一筆掛號號碼`);return}const ref=await addDoc(collection(db,"outgoingMailBatches"),{...data,batchNo,createdTime:new Date(),createdBy:currentUser,createdByEmail:currentUserEmail});$("outgoingBatchId").value=ref.id;await writeAuditLog({action:"create",category:"outgoingMailBatch",targetId:ref.id,targetLabel:batchNo,after:{...data,batchNo,itemCount:data.items.length}})}await loadOutgoingBatches();alert(id?"寄件資料已更新":"寄件資料已儲存")}catch(error){console.error(error);alert("儲存失敗：" + (error?.message||error))}} window.saveOutgoingBatch=saveOutgoingBatch;
-function editOutgoingBatch(id){const batch=outgoingBatches.find(b=>b.id===id);if(!batch)return;showPage("outgoingPage",document.querySelector('[onclick*=outgoingPage]'));$("outgoingBatchId").value=batch.id;$("outgoingDate").value=batch.sendDate||todayStr();$("outgoingType").value=batch.mailType||"掛號函件";$("outgoingSenderName").value=batch.senderName||"";$("outgoingRepresentative").value=batch.representative||"";$("outgoingSenderAddress").value=batch.senderAddress||"";$("outgoingSenderPhone").value=batch.senderPhone||"";$("outgoingPostalSuffix8").value=batch.postalSuffix8||"";outgoingSuffixPrompted=true;updateOutgoingSuffixStatus();renderOutgoingRows(batch.items||[])} window.editOutgoingBatch=editOutgoingBatch;
+async function saveOutgoingBatch(){const id=$("outgoingBatchId").value,data=outgoingFormData();if(!validateOutgoing(data))return;["outgoingSenderName","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone"].forEach(id=>localStorage.setItem(id,$(id).value.trim()));try{if(id){const before=outgoingBatches.find(b=>b.id===id);await updateDoc(doc(db,"outgoingMailBatches",id),{...data,updatedTime:new Date(),updatedBy:currentUser});await writeAuditLog({action:"update",category:"outgoingMailBatch",targetId:id,targetLabel:before?.batchNo||id,before,after:data})}else{const batchNo=makeOutgoingBatchNo(data);if(outgoingBatches.some(batch=>batch.batchNo===batchNo)){alert(`寄件紀錄編號 ${batchNo} 已存在，請確認交寄日期或第一筆掛號號碼`);return}const ref=await addDoc(collection(db,"outgoingMailBatches"),{...data,batchNo,createdTime:new Date(),createdBy:currentUser,createdByEmail:currentUserEmail});$("outgoingBatchId").value=ref.id;await writeAuditLog({action:"create",category:"outgoingMailBatch",targetId:ref.id,targetLabel:batchNo,after:{...data,batchNo,itemCount:data.items.length}})}await loadOutgoingBatches();if(!id){outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;refreshOutgoingRows()}alert(id?"寄件資料已更新":"寄件資料已儲存")}catch(error){console.error(error);alert("儲存失敗：" + (error?.message||error))}} window.saveOutgoingBatch=saveOutgoingBatch;
+function editOutgoingBatch(id){const batch=outgoingBatches.find(b=>b.id===id);if(!batch)return;showPage("outgoingPage",document.querySelector('[onclick*=outgoingPage]'));$("outgoingBatchId").value=batch.id;$("outgoingDate").value=batch.sendDate||todayStr();$("outgoingType").value=batch.mailType||"掛號函件";$("outgoingSenderName").value=batch.senderName||"";$("outgoingRepresentative").value=batch.representative||"";$("outgoingSenderAddress").value=batch.senderAddress||"";$("outgoingSenderPhone").value=batch.senderPhone||"";$("outgoingPostalSuffix8").value=batch.postalSuffix8||"";outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;outgoingSuffixPrompted=true;updateOutgoingSuffixStatus();renderOutgoingRows(batch.items||[])} window.editOutgoingBatch=editOutgoingBatch;
+function copyOutgoingBatchRoster(id){const batch=outgoingBatches.find(item=>item.id===id);if(!batch||!batch.items?.length){alert("此批次沒有可複製的名單");return}const filled=outgoingRawItems().some(item=>item.receiverName||item.address||item.trackingNo||item.contents);if(filled&&!confirm("目前表單內容將被所選批次的名單取代，尚未儲存的修改會消失。要繼續嗎？"))return;showPage("outgoingPage",document.querySelector('[onclick*=outgoingPage]'));$("outgoingBatchId").value="";$("outgoingDate").value=todayStr();$("outgoingType").value=batch.mailType||"掛號函件";$("outgoingSenderName").value=batch.senderName||"";$("outgoingRepresentative").value=batch.representative||"";$("outgoingSenderAddress").value=batch.senderAddress||"";$("outgoingSenderPhone").value=batch.senderPhone||"";$("outgoingPostalSuffix8").value="";outgoingCopiedDraft=true;outgoingSequenceSeed="";outgoingSuffixPrompted=true;renderOutgoingSenderProfiles("");updateOutgoingSuffixStatus();renderOutgoingRows(batch.items.map(item=>({...item,trackingNo:"",postalTrackingNo:""})));const notice=$("outgoingCopyNotice");notice.textContent=`已複製 ${formatDate(batch.sendDate)} 的 ${batch.items.length} 筆名單；舊掛號編號與郵局查詢後 8 碼未帶入。可上移、下移或刪除，再輸入新首碼自動連號。`;notice.hidden=false;openOutgoingSuffixDialog()} window.copyOutgoingBatchRoster=copyOutgoingBatchRoster;
 async function deleteOutgoingBatch(id){const batch=outgoingBatches.find(b=>b.id===id);if(!confirm(`確定刪除寄件批次 ${batch?.batchNo||""}？`))return;await deleteDoc(doc(db,"outgoingMailBatches",id));await writeAuditLog({action:"delete",category:"outgoingMailBatch",targetId:id,targetLabel:batch?.batchNo||id,before:batch});if($("outgoingBatchId").value===id)resetOutgoingForm();await loadOutgoingBatches()} window.deleteOutgoingBatch=deleteOutgoingBatch;
 function renderOutgoingBatchList(){
   const area=$("outgoingBatchList");if(!area)return;
@@ -709,7 +765,7 @@ function renderOutgoingBatchList(){
   $("bulkHistoryCount").textContent=`共 ${filtered.length} 筆`;
   renderHistoryListPager("bulk",filtered.length);
   const page=filtered.slice((historyListPages.bulk-1)*HISTORY_LIST_PAGE_SIZE,historyListPages.bulk*HISTORY_LIST_PAGE_SIZE);
-  area.innerHTML=page.length?page.map(batch=>`<div class="maintenance-item"><div><strong>${esc(batch.batchNo||batch.id)}</strong><br><span>${esc(formatDate(batch.sendDate))} · ${esc(batch.mailType)} · ${batch.items?.length||0} 件 · ${esc(batch.senderName||"-")}</span></div><div class="maintenance-actions"><button class="btn btn-gray" onclick="editOutgoingBatch('${batch.id}')">開啟</button><button class="btn btn-red" onclick="deleteOutgoingBatch('${batch.id}')">刪除</button></div></div>`).join(""):`<p class="page-desc">沒有符合篩選條件的大宗寄件紀錄。</p>`;
+  area.innerHTML=page.length?page.map(batch=>`<div class="maintenance-item"><div><strong>${esc(batch.batchNo||batch.id)}</strong><br><span>${esc(formatDate(batch.sendDate))} · ${esc(batch.mailType)} · ${batch.items?.length||0} 件 · ${esc(batch.senderName||"-")}</span></div><div class="maintenance-actions"><button class="btn btn-gray" onclick="editOutgoingBatch('${batch.id}')">開啟</button><button class="btn btn-primary" onclick="copyOutgoingBatchRoster('${batch.id}')">複製名單</button><button class="btn btn-red" onclick="deleteOutgoingBatch('${batch.id}')">刪除</button></div></div>`).join(""):`<p class="page-desc">沒有符合篩選條件的大宗寄件紀錄。</p>`;
 }
 function selectedBulkSuffixBatches(){return [...$("bulkSuffixBatchList").querySelectorAll('input[type="checkbox"]:checked')].map(input=>outgoingBatches.find(batch=>batch.id===input.value)).filter(Boolean)}
 function openBulkSuffixDialog(){const eligible=outgoingBatches.filter(batch=>(batch.items||[]).some(item=>/^\d{6}$/.test(item.trackingNo||"")));$("bulkSuffixBatchList").innerHTML=eligible.length?eligible.map(batch=>`<label class="postal-batch-option"><input type="checkbox" value="${esc(batch.id)}" onchange="previewBulkSuffix()"><span><strong>${esc(batch.batchNo||batch.id)}</strong><small>${esc(formatDate(batch.sendDate))} · ${esc(batch.mailType)} · ${(batch.items||[]).length} 件 · ${batch.postalSuffix8?`目前 ${esc(batch.postalSuffix8)}`:"尚未補登"}</small></span></label>`).join(""):'<p class="page-desc">沒有可補登的 6 碼大宗批次。</p>';$("bulkOfficeCode").value="";$("bulkMailCode").value="";previewBulkSuffix();$("bulkSuffixDialog").showModal()} window.openBulkSuffixDialog=openBulkSuffixDialog;
