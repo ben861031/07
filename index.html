@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.2">
+<link rel="stylesheet" href="./styles.css?v=1.9.3">
 </head>
 <body>
 
@@ -296,13 +296,14 @@
             <div class="form-group"><label>公司地址</label><input type="text" id="outgoingSenderAddress"></div>
             <div class="form-group"><label>電話號碼</label><input type="text" id="outgoingSenderPhone"></div>
           </div>
+          <div class="postal-suffix-strip"><div><strong>郵局查詢後 8 碼</strong><span id="outgoingSuffixStatus">待補登；印單仍使用前 6 碼</span></div><button class="btn btn-gray" type="button" onclick="openOutgoingSuffixDialog()">確認／修改後 8 碼</button><input type="hidden" id="outgoingPostalSuffix8"></div>
           <div class="outgoing-table-toolbar">
             <span>可使用方向鍵或 Enter 快速移動欄位</span>
             <button class="btn btn-gray" type="button" id="outgoingAdvancedToggle" onclick="toggleOutgoingAdvanced()">顯示進階欄位</button>
           </div>
           <div class="table-wrap outgoing-entry-wrap">
             <table class="outgoing-entry-table">
-              <thead><tr><th>#</th><th>掛號編號</th><th>收件人姓名</th><th>寄達地名（或地址）</th><th class="outgoing-advanced-col">回執</th><th class="outgoing-advanced-col">印刷物</th><th class="outgoing-advanced-col">重量</th><th class="outgoing-advanced-col">郵資</th><th class="outgoing-advanced-col">內裝物品名稱</th></tr></thead>
+              <thead><tr><th>#</th><th>掛號編號</th><th>收件人姓名</th><th>寄達地名（或地址）</th><th class="outgoing-advanced-col">回執</th><th class="outgoing-advanced-col">印刷物</th><th class="outgoing-advanced-col">重量</th><th class="outgoing-advanced-col">郵資</th><th class="outgoing-advanced-col">內裝物品名稱</th><th class="outgoing-advanced-col">完整碼例外</th></tr></thead>
               <tbody id="outgoingEntryRows"></tbody>
             </table>
           </div>
@@ -312,7 +313,7 @@
         </div>
 
         <div class="panel outgoing-history-panel outgoing-wide-panel">
-          <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>大宗掛號寄件紀錄</h2>
+          <div class="postal-history-head"><h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>大宗掛號寄件紀錄</h2><button class="btn btn-gray" type="button" onclick="openBulkSuffixDialog()">批次補登後 8 碼</button></div>
           <div class="history-list-controls">
             <label>交寄日期<select id="bulkHistoryDateFilter" onchange="changeHistoryListFilter('bulk')"><option value="">全部日期</option></select></label>
             <label>寄件公司<select id="bulkHistoryCompanyFilter" onchange="changeHistoryListFilter('bulk')"><option value="">全部公司</option></select></label>
@@ -438,7 +439,10 @@
     <div><button type="button" class="btn btn-gray" onclick="closeExcelImportDialog()">取消</button><button type="button" class="btn btn-primary" id="confirmExcelImportButton" onclick="confirmExcelImport()" disabled>確定匯入</button></div>
   </div>
 </dialog>
+<dialog id="outgoingSuffixDialog" class="postal-dialog" aria-labelledby="outgoingSuffixTitle"><h2 id="outgoingSuffixTitle">確認郵局查詢後 8 碼</h2><p id="outgoingSuffixSource" class="page-desc"></p><p class="page-desc">依郵局執據確認：收寄局碼 6 碼＋郵件種類碼 2 碼。這組碼只用於查詢，印單仍用前 6 碼。</p><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="outgoingOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"></label><label>郵件種類碼（2 碼）<input id="outgoingMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}"></label></div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="deferOutgoingSuffix()">交寄後補登</button><button class="btn btn-primary" type="button" onclick="confirmOutgoingSuffix()">確認使用</button></div></dialog>
+<dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.0"></script>
-<script src="./app.js?v=1.9.2"></script>
+<script src="./scripts/postal-tracking.js?v=1.9.3"></script>
+<script src="./app.js?v=1.9.3"></script>
 </body>
 </html>
