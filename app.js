@@ -43,7 +43,7 @@ async function writeAuditLog({action,category,targetId="",targetLabel="",before=
 function compact(data){if(!data)return null;const out={};Object.entries(data).forEach(([k,v])=>{if(k==="id")return;if(v===null||["string","number","boolean"].includes(typeof v))out[k]=v});return out}
 
 function applyRoleAccess(){document.querySelectorAll(".admin-only").forEach(el=>el.style.display=canAdmin()?"":"none");$("memberMenu").style.display=currentIsSystemAdmin?"":"none";$("systemMenuTitle").style.display=canAdmin()?"":"none"}
-function closeTopMenus(){document.querySelectorAll(".top-menu-group.open").forEach(group=>{group.classList.remove("open");group.querySelector(".top-menu-button")?.setAttribute("aria-expanded","false")})}
+function closeTopMenus(){document.querySelectorAll(".top-menu-group.open").forEach(group=>{group.classList.remove("open");group.querySelector(".top-menu-button")?.setAttribute("aria-expanded","false")});const focused=document.activeElement;if(focused?.closest?.(".top-menu-group"))focused.blur()}
 function toggleTopMenu(id){const group=$(id),opening=!group?.classList.contains("open");closeTopMenus();if(opening&&group){group.classList.add("open");group.querySelector(".top-menu-button")?.setAttribute("aria-expanded","true")}}
 window.toggleTopMenu=toggleTopMenu;
 document.addEventListener("click",event=>{if(!event.target.closest(".top-menu-group"))closeTopMenus()});

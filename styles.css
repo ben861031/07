@@ -632,7 +632,7 @@ button,input,select,textarea{font:inherit}
 .top-menu{display:flex;align-items:stretch;gap:6px;flex:1;min-width:0;align-self:stretch}
 .top-menu-group{position:relative;display:flex;align-items:stretch}
 .top-menu-button{display:flex;align-items:center;gap:9px;height:100%;padding:0 18px;border:0;background:transparent;color:#334155;font-size:16px;font-weight:800;white-space:nowrap;cursor:pointer}
-.top-menu-button:hover,.top-menu-group:has(.menu-item.active)>.top-menu-button,.top-menu-group.open>.top-menu-button{color:#2563eb;background:#f8fbff}
+.top-menu-button:hover,.top-menu-group.open>.top-menu-button{color:#2563eb;background:#f8fbff}
 .top-menu-button>.menu-icon{width:18px;height:18px;color:currentColor}
 .top-chevron{width:16px;height:16px;transition:transform .18s}
 .top-menu-group.open .top-chevron{transform:rotate(180deg)}

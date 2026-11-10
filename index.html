@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.15">
+<link rel="stylesheet" href="./styles.css?v=1.9.16">
 </head>
 <body>
 
@@ -29,12 +29,12 @@
         <div class="top-menu-group" id="mailWorkMenu">
           <button type="button" class="top-menu-button" aria-expanded="false" aria-controls="mailWorkDropdown" onclick="toggleTopMenu('mailWorkMenu')"><i data-lucide="mail" class="menu-icon"></i><span>郵件作業</span><i data-lucide="chevron-down" class="top-chevron"></i></button>
           <div class="top-dropdown" id="mailWorkDropdown">
-            <div class="menu-item" data-tooltip="郵件統計" onclick="showPage('statsPage',this)"><i data-lucide="chart-no-axes-combined" class="menu-icon"></i><span>郵件統計</span></div>
             <div class="menu-item active" data-tooltip="收件登錄" onclick="showPage('registerPage',this)"><i data-lucide="square-pen" class="menu-icon"></i><span>收件登錄</span></div>
             <div class="menu-item" data-tooltip="簽收單產生" onclick="openSheetPage(this)"><i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span></div>
             <div class="menu-item" data-tooltip="一般寄件登錄" onclick="showPage('generalOutgoingPage',this); prepareGeneralOutgoingPage();"><i data-lucide="mail-plus" class="menu-icon"></i><span>一般寄件登錄</span></div>
             <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="showPage('outgoingPage',this); prepareOutgoingPage();"><i data-lucide="send" class="menu-icon"></i><span>大宗掛號寄件</span></div>
             <div class="menu-item" data-tooltip="郵件查詢" onclick="showPage('historyPage',this)"><i data-lucide="search" class="menu-icon"></i><span>郵件查詢</span></div>
+            <div class="menu-item" data-tooltip="郵件統計" onclick="showPage('statsPage',this)"><i data-lucide="chart-no-axes-combined" class="menu-icon"></i><span>郵件統計</span></div>
           </div>
         </div>
         <div class="top-menu-group" id="systemMenuTitle">
@@ -487,6 +487,6 @@
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.0"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.15"></script>
+<script src="./app.js?v=1.9.16"></script>
 </body>
 </html>
