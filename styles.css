@@ -620,3 +620,113 @@ button,input,select,textarea{font:inherit}
 @media(max-width:1050px){.stats-heading{flex-direction:column}.stats-detail-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.stats-panel,.stats-detail-panel{padding:20px}.stats-period-controls{width:100%}.stats-period-field{flex:1}.stats-period-field input{width:100%;min-width:0}.stats-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats-quick-row{flex-wrap:wrap}.stats-quick-row>div,.stats-quick-row>button{flex:1}}
 @media(max-width:410px){.stats-kpi-grid{gap:9px}.stats-kpi-grid .kpi-card{padding:13px}.stats-kpi-grid .kpi-value{font-size:28px}.stats-kpi-grid .kpi-sub{font-size:11px}.stats-quick-row>div,.stats-quick-row>button{min-width:0;width:100%;flex-basis:100%}}
+
+/* v1.9.14：比照印鑑系統的上方功能列 */
+.app{display:flex;flex-direction:column;min-height:100vh}
+.app>.main{flex:1;width:100%;padding:24px 30px 36px}
+.top-navbar{position:sticky;top:0;z-index:1200;display:flex;align-items:center;gap:22px;min-height:76px;padding:0 28px;background:#fff;border-bottom:1px solid #d9e2ef;box-shadow:0 4px 18px rgba(15,23,42,.06)}
+.brand-area{display:flex;align-items:center;gap:12px;flex:0 0 auto;padding-right:24px;border-right:1px solid #d9e2ef}
+.brand-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#eff6ff;color:#2563eb}
+.brand-icon svg{width:24px;height:24px}
+.brand-title{color:#0f172a;font-size:21px;font-weight:900;white-space:nowrap}
+.top-menu{display:flex;align-items:stretch;gap:6px;flex:1;min-width:0;align-self:stretch}
+.top-menu-group{position:relative;display:flex;align-items:stretch}
+.top-menu-button{display:flex;align-items:center;gap:9px;height:100%;padding:0 18px;border:0;background:transparent;color:#334155;font-size:16px;font-weight:800;white-space:nowrap;cursor:pointer}
+.top-menu-button:hover,.top-menu-group:has(.menu-item.active)>.top-menu-button,.top-menu-group.open>.top-menu-button{color:#2563eb;background:#f8fbff}
+.top-menu-button>.menu-icon{width:18px;height:18px;color:currentColor}
+.top-chevron{width:16px;height:16px;transition:transform .18s}
+.top-menu-group.open .top-chevron{transform:rotate(180deg)}
+.top-dropdown{position:absolute;top:100%;left:0;z-index:1250;min-width:228px;padding:9px;border:1px solid #e2e8f0;border-radius:0 0 14px 14px;background:#fff;box-shadow:0 18px 42px rgba(15,23,42,.16);opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .18s,transform .18s,visibility .18s}
+.top-menu-group.open .top-dropdown{opacity:1;visibility:visible;transform:translateY(0)}
+.top-dropdown .menu-item{height:45px;margin:0 0 3px;padding:0 12px;gap:10px;border-radius:9px;background:transparent;color:#334155;box-shadow:none;font-size:14px;font-weight:700}
+.top-dropdown .menu-item:last-child{margin-bottom:0}
+.top-dropdown .menu-item:hover,.top-dropdown .menu-item:focus-visible{background:#eff6ff;color:#2563eb;transform:none}
+.top-dropdown .menu-item.active{background:transparent;color:#334155;box-shadow:none}
+.top-dropdown .menu-item.active:hover{background:#eff6ff;color:#2563eb}
+.top-dropdown .menu-icon{width:18px;height:18px;color:currentColor}
+.top-user-area{display:flex;align-items:center;gap:11px;min-width:0;padding-left:20px;border-left:1px solid #e2e8f0}
+.top-user-icon{width:19px;height:19px;flex:0 0 auto;color:#64748b}
+.top-user-text{display:flex;flex-direction:column;min-width:0}
+.top-user-text strong{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:13px}
+.top-user-text small{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:11px}
+.top-logout-btn{height:38px;padding:0 14px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fafc;color:#475569;font-weight:800;white-space:nowrap;cursor:pointer}
+.top-logout-btn:hover{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+@media(max-width:900px){.top-navbar{flex-wrap:wrap;gap:0 15px;padding:10px 18px}.brand-area{border-right:0;padding-right:0}.top-user-area{margin-left:auto;border-left:0;padding-left:0}.top-menu{order:3;width:100%;flex-basis:100%;height:48px;margin-top:6px;border-top:1px solid #eef2f7}.top-menu-button{padding:0 14px}.top-dropdown{top:100%}.app>.main{padding:18px 16px 28px}}
+@media(max-width:600px){.brand-area{width:100%;padding-bottom:8px}.brand-title{font-size:18px}.top-user-area{width:100%;justify-content:flex-end;padding:7px 0 0;border-top:1px solid #f1f5f9}.top-user-text small{display:none}.top-menu{justify-content:flex-start;height:46px;margin-top:7px}.top-menu-button{font-size:14px;padding:0 12px}.top-dropdown{min-width:min(235px,calc(100vw - 24px))}.app>.main{padding:14px}}
+
+/* 共用人員與郵件權限：沿用印鑑系統的名單、篩選與視窗佈局 */
+.management-page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px}
+.management-page-head .detail-title{margin-bottom:5px}
+.management-page-head>.btn,.management-head-actions{flex:0 0 auto}
+.management-head-actions{display:flex;align-items:center;gap:10px}
+.management-more{position:relative}
+.management-more>summary{list-style:none;cursor:pointer}
+.management-more>summary::-webkit-details-marker{display:none}
+.management-more-list{position:absolute;right:0;top:calc(100% + 6px);z-index:100;min-width:180px;padding:6px;border:1px solid #dbe4f0;border-radius:12px;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.12)}
+.management-more-list button{display:block;width:100%;padding:10px 12px;border:0;border-radius:8px;background:#fff;text-align:left;color:#334155;font-size:13px;font-weight:700;cursor:pointer}
+.management-more-list button:hover{background:#eff6ff;color:#1d4ed8}
+.member-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}
+.member-summary-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:88px;padding:12px;border:1px solid #dbe4f0;border-radius:13px;background:#f8fafc}
+.member-summary-item span{color:#64748b;font-size:13px}
+.member-summary-item strong{margin-top:5px;color:#0f172a;font-size:27px}
+.management-filter-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(140px,180px) minmax(130px,160px) auto;gap:10px;align-items:center;margin:18px 0}
+.management-filter-row input,.management-filter-row select{width:100%;height:44px;padding:0 13px;border:1px solid #dbe4f0;border-radius:11px;background:white;color:#334155;font-size:13px}
+.management-filter-row input:focus,.management-filter-row select:focus,.permission-role-select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.management-table-wrap{overflow:auto;border-radius:14px}
+.management-table{min-width:850px}
+.management-table th{text-align:left;padding:13px 15px}
+.management-table td{text-align:left;padding:13px 15px}
+.management-table tr.is-inactive{background:#f8fafc;color:#64748b}
+.management-row-actions{display:flex;gap:7px;align-items:center;white-space:nowrap}
+.management-row-actions .btn{height:38px;min-height:38px;padding:0 10px;font-size:12px}
+.management-row-actions .btn-red{background:#fff;color:#b91c1c;border:1px solid #fecaca}
+.management-row-actions .btn-red:hover{background:#fee2e2}
+.management-overlay{position:fixed;inset:0;z-index:1500;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.55)}
+.management-overlay.hidden{display:none!important}
+.management-modal{width:min(610px,100%);max-height:calc(100vh - 36px);overflow:auto;border:1px solid #dbe4f0;border-radius:16px;background:white;box-shadow:0 25px 65px rgba(15,23,42,.22)}
+.management-modal-wide{width:min(780px,100%)}
+.management-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 24px;border-bottom:1px solid #e2e8f0}
+.management-modal-head h2{margin:0;color:#0f172a;font-size:21px}
+.management-modal-head p{margin:6px 0 0;color:#64748b;font-size:13px;line-height:1.55}
+.management-modal-close{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border:0;border-radius:9px;background:#eff3f8;color:#475569;font-size:25px;line-height:1;cursor:pointer}
+.management-modal-close:hover{background:#e2e8f0;color:#0f172a}
+.management-modal-body{padding:22px 24px}
+.management-modal-body .form-group:last-child{margin-bottom:0}
+.management-modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:15px 24px;border-top:1px solid #e2e8f0}
+.member-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.permission-role-guide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0 22px}
+.permission-role-guide article{display:flex;align-items:flex-start;gap:12px;padding:15px;border:1px solid #dbe4f0;border-radius:13px;background:#f8fafc}
+.permission-role-guide svg{flex:0 0 21px;width:21px;height:21px;color:#2563eb}
+.permission-role-guide article div{display:grid;gap:5px}
+.permission-role-guide strong{color:#0f172a;font-size:14px}
+.permission-role-guide span{color:#64748b;font-size:12px;line-height:1.5}
+.permission-manual{margin-top:18px;padding-top:12px;border-top:1px solid #e2e8f0}
+.permission-manual summary{color:#64748b;font-size:13px;font-weight:700;cursor:pointer}
+.permission-manual .form-group{margin-top:12px}
+.permission-table{min-width:950px}
+.permission-role-select{min-width:132px;height:38px;padding:0 8px;border:1px solid #dbe4f0;border-radius:9px;background:white;color:#334155;font-size:13px}
+.permission-email,.permission-member-warning{display:block;margin-top:4px;color:#94a3b8;font-size:11px;overflow-wrap:anywhere}
+.permission-member-warning{color:#b45309}
+.member-import-dialog{width:min(1020px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid #dbe4f0;border-radius:16px;box-shadow:0 25px 65px rgba(15,23,42,.24)}
+.member-import-dialog:not([open]){display:none}
+.member-import-dialog[open]{display:flex;flex-direction:column}
+.member-import-dialog::backdrop{background:rgba(15,23,42,.55)}
+.member-import-dialog .management-modal-body{overflow:auto;min-height:0}
+.member-import-choice{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.member-import-choice label{display:flex;align-items:center;gap:7px;color:#334155;font-size:13px;font-weight:700}
+.member-import-choice input{accent-color:#2563eb}
+.member-import-summary{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:8px;margin:18px 0}
+.member-import-summary>div{display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fafc}
+.member-import-summary span{color:#64748b;font-size:11px}
+.member-import-summary strong{overflow:hidden;text-overflow:ellipsis;color:#0f172a;font-size:17px;white-space:nowrap}
+.member-import-errors{margin-bottom:12px;color:#92400e;font-size:13px}
+.member-import-errors details{padding:12px;border:1px solid #fcd34d;border-radius:10px;background:#fffbeb}
+.member-import-errors summary{font-weight:800;cursor:pointer}
+.member-import-errors ul{margin:10px 0 0;padding-left:20px;line-height:1.6}
+.member-import-dialog .table-wrap{max-height:320px;overflow:auto}
+.member-missing-head{display:flex;justify-content:space-between;gap:10px;margin:18px 0 8px;color:#334155;font-size:13px}
+.member-missing-head span{color:#64748b}
+.member-missing-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:190px;overflow:auto}
+.member-missing-list label{display:flex;align-items:center;gap:9px;padding:10px;border:1px solid #dbe4f0;border-radius:9px;color:#334155;font-size:12px}
+@media(max-width:900px){.management-filter-row{grid-template-columns:1fr 1fr}.management-filter-row input{grid-column:1/-1}.member-import-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.member-import-summary>div:first-child{grid-column:1/-1}}
+@media(max-width:600px){.management-page-head{flex-direction:column}.management-head-actions{width:100%;justify-content:flex-start}.member-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.management-filter-row{grid-template-columns:1fr}.management-filter-row input{grid-column:auto}.permission-role-guide{grid-template-columns:1fr}.member-form-grid{grid-template-columns:1fr}.member-import-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.member-missing-list{grid-template-columns:1fr}.management-modal-body,.management-modal-head,.management-modal-actions{padding-left:16px;padding-right:16px}.member-import-choice{align-items:stretch;flex-direction:column}}

@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.13">
+<link rel="stylesheet" href="./styles.css?v=1.9.14">
 </head>
 <body>
 
@@ -23,58 +23,34 @@
 
 <div id="systemArea" class="system-area">
   <div class="app">
-    <aside class="sidebar" id="sidebar">
-      <div class="logo">
-        <button id="sidebarToggle" class="sidebar-toggle" aria-label="切換導覽選單" aria-expanded="false" onclick="toggleSidebar()">☰</button>
-        <div class="logo-content">
-          <div class="logo-title">郵件簽收管理系統</div>
-          <div class="logo-sub">Mail Receipt System</div>
+    <header class="top-navbar">
+      <div class="brand-area"><span class="brand-icon"><i data-lucide="mails"></i></span><span class="brand-title">郵件簽收管理系統</span></div>
+      <nav class="top-menu" aria-label="主要功能列">
+        <div class="top-menu-group" id="mailWorkMenu">
+          <button type="button" class="top-menu-button" aria-expanded="false" aria-controls="mailWorkDropdown" onclick="toggleTopMenu('mailWorkMenu')"><i data-lucide="mail" class="menu-icon"></i><span>郵件作業</span><i data-lucide="chevron-down" class="top-chevron"></i></button>
+          <div class="top-dropdown" id="mailWorkDropdown">
+            <div class="menu-item" data-tooltip="郵件統計" onclick="showPage('statsPage',this)"><i data-lucide="chart-no-axes-combined" class="menu-icon"></i><span>郵件統計</span></div>
+            <div class="menu-item active" data-tooltip="收件登錄" onclick="showPage('registerPage',this)"><i data-lucide="square-pen" class="menu-icon"></i><span>收件登錄</span></div>
+            <div class="menu-item" data-tooltip="簽收單產生" onclick="openSheetPage(this)"><i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span></div>
+            <div class="menu-item" data-tooltip="一般寄件登錄" onclick="showPage('generalOutgoingPage',this); prepareGeneralOutgoingPage();"><i data-lucide="mail-plus" class="menu-icon"></i><span>一般寄件登錄</span></div>
+            <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="showPage('outgoingPage',this); prepareOutgoingPage();"><i data-lucide="send" class="menu-icon"></i><span>大宗掛號寄件</span></div>
+            <div class="menu-item" data-tooltip="郵件查詢" onclick="showPage('historyPage',this)"><i data-lucide="search" class="menu-icon"></i><span>郵件查詢</span></div>
+          </div>
         </div>
-      </div>
-
-      <div class="menu-title">郵件作業</div>
-      <div class="menu-item" data-tooltip="郵件統計" onclick="showPage('statsPage',this)">
-        <i data-lucide="chart-no-axes-combined" class="menu-icon"></i><span>郵件統計</span>
-      </div>
-      <div class="menu-item active" data-tooltip="收件登錄" onclick="showPage('registerPage',this)">
-        <i data-lucide="square-pen" class="menu-icon"></i><span>收件登錄</span>
-      </div>
-      <div class="menu-item" data-tooltip="簽收單產生" onclick="openSheetPage(this)">
-        <i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span>
-      </div>
-      <div class="menu-item" data-tooltip="一般寄件登錄" onclick="showPage('generalOutgoingPage',this); prepareGeneralOutgoingPage();">
-        <i data-lucide="mail-plus" class="menu-icon"></i><span>一般寄件登錄</span>
-      </div>
-      <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="showPage('outgoingPage',this); prepareOutgoingPage();">
-        <i data-lucide="send" class="menu-icon"></i><span>大宗掛號寄件</span>
-      </div>
-      <div class="menu-item" data-tooltip="郵件查詢" onclick="showPage('historyPage',this)">
-        <i data-lucide="search" class="menu-icon"></i><span>郵件查詢</span>
-      </div>
-
-      <div class="menu-title" id="systemMenuTitle">系統管理</div>
-      <div class="menu-item admin-only" data-tooltip="部門維護" onclick="showPage('deptPage',this)">
-        <i data-lucide="building-2" class="menu-icon"></i><span>部門維護</span>
-      </div>
-      <div class="menu-item admin-only" data-tooltip="郵件類型維護" onclick="showPage('mailTypePage',this)">
-        <i data-lucide="tags" class="menu-icon"></i><span>郵件類型維護</span>
-      </div>
-      <div class="menu-item admin-only" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)">
-        <i data-lucide="users" class="menu-icon"></i><span>權限管理</span>
-      </div>
-      <div class="menu-item admin-only" id="auditLogMenu" data-tooltip="操作紀錄" onclick="showPage('auditLogPage',this); loadAuditLogs();">
-        <i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span>
-      </div>
-      <div class="menu-item admin-only" id="loginLogMenu" data-tooltip="登入紀錄" onclick="showPage('loginLogPage',this); loadLoginLogs();">
-        <i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span>
-      </div>
-
-      <div class="sidebar-user">
-        <div id="sidebarUserName">使用者</div>
-        <div id="sidebarUserEmail">-</div>
-        <button class="logout-menu-btn" onclick="logout()">登出</button>
-      </div>
-    </aside>
+        <div class="top-menu-group" id="systemMenuTitle">
+          <button type="button" class="top-menu-button" aria-expanded="false" aria-controls="mailSystemDropdown" onclick="toggleTopMenu('systemMenuTitle')"><i data-lucide="settings" class="menu-icon"></i><span>系統管理</span><i data-lucide="chevron-down" class="top-chevron"></i></button>
+          <div class="top-dropdown" id="mailSystemDropdown">
+            <div class="menu-item admin-only" data-tooltip="部門維護" onclick="showPage('deptPage',this)"><i data-lucide="building-2" class="menu-icon"></i><span>部門維護</span></div>
+            <div class="menu-item admin-only" data-tooltip="郵件類型維護" onclick="showPage('mailTypePage',this)"><i data-lucide="tags" class="menu-icon"></i><span>郵件類型維護</span></div>
+            <div class="menu-item admin-only" id="memberMenu" data-tooltip="人員管理" onclick="showPage('memberPage',this)"><i data-lucide="contact-round" class="menu-icon"></i><span>人員管理</span></div>
+            <div class="menu-item admin-only" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)"><i data-lucide="users" class="menu-icon"></i><span>權限管理</span></div>
+            <div class="menu-item admin-only" id="auditLogMenu" data-tooltip="操作紀錄" onclick="showPage('auditLogPage',this); loadAuditLogs();"><i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span></div>
+            <div class="menu-item admin-only" id="loginLogMenu" data-tooltip="登入紀錄" onclick="showPage('loginLogPage',this); loadLoginLogs();"><i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span></div>
+          </div>
+        </div>
+      </nav>
+      <div class="top-user-area"><i data-lucide="user-round" class="top-user-icon"></i><div class="top-user-text"><strong id="sidebarUserName">使用者</strong><small id="sidebarUserEmail">-</small></div><button class="top-logout-btn" onclick="logout()">登出</button></div>
+    </header>
 
     <main class="main">
       <section id="statsPage" class="page hidden">
@@ -425,15 +401,36 @@
 
       <section id="permissionPage" class="page hidden">
         <div class="panel admin-wide-panel">
-          <h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2>
-          <p class="page-desc">以共用人員名單對應部門、姓名及員工編號；此頁的角色與啟用狀態仍由郵件系統管理。</p>
-          <div class="permission-add-row">
-            <div class="form-group"><label for="permissionMemberSelect">選擇同仁</label><select id="permissionMemberSelect" onchange="selectPermissionMember()"><option value="">從共用人員選擇（可直接輸入 Email）</option></select></div>
-            <div class="form-group"><label for="newUserEmail">Google 帳號 Email</label><input type="email" id="newUserEmail" placeholder="user@company.com"></div>
-            <button class="btn btn-green" onclick="addWhitelistUser()"><i data-lucide="user-plus"></i>新增白名單</button>
+          <div class="management-page-head"><div><h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2><p class="page-desc">從共用人員選擇同仁，再設定此人在郵件系統的角色與啟用狀態。</p></div><button type="button" class="btn btn-primary" onclick="openPermissionCreateModal()"><i data-lucide="user-plus"></i>新增權限</button></div>
+          <div class="permission-role-guide"><article><i data-lucide="mail-check"></i><div><strong>一般使用者</strong><span>登錄、查詢郵件及產生簽收單。</span></div></article><article><i data-lucide="shield-check"></i><div><strong>系統管理員</strong><span>使用全部功能及管理權限。</span></div></article></div>
+          <div class="management-filter-row">
+            <input id="permissionSearch" type="search" placeholder="搜尋姓名、部門、員工編號或 Email" oninput="renderUserList()" aria-label="搜尋權限帳號">
+            <select id="permissionRoleFilter" onchange="renderUserList()" aria-label="角色篩選"><option value="all">全部角色</option><option value="user">一般使用者</option><option value="admin">系統管理員</option></select>
+            <select id="permissionStatusFilter" onchange="renderUserList()" aria-label="狀態篩選"><option value="all">全部狀態</option><option value="active">啟用</option><option value="inactive">停用</option></select>
+            <button type="button" class="btn btn-gray" onclick="resetPermissionFilters()"><i data-lucide="rotate-ccw"></i>清除條件</button>
           </div>
-          <div class="permission-toolbar"><label for="permissionSearch">搜尋權限帳號</label><input id="permissionSearch" type="search" placeholder="搜尋姓名、部門、員工編號或 Email" oninput="renderUserList()"></div>
-          <div id="userListArea" class="maintenance-list"></div>
+          <div id="userListArea"></div>
+        </div>
+        <div id="permissionCreateOverlay" class="management-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="permissionCreateTitle">
+          <div class="management-modal"><div class="management-modal-head"><div><h2 id="permissionCreateTitle">新增權限</h2><p>選擇共用人員並設定郵件系統角色。</p></div><button type="button" class="management-modal-close" onclick="closePermissionCreateModal()" aria-label="關閉">×</button></div>
+            <div class="management-modal-body"><div class="form-group"><label for="permissionMemberSelect">共用人員</label><select id="permissionMemberSelect" onchange="selectPermissionMember()"><option value="">請選擇共用人員</option></select></div><div class="form-group"><label for="newUserRole">郵件系統角色</label><select id="newUserRole"><option value="user">一般使用者</option><option value="admin">系統管理員</option></select></div><details class="permission-manual"><summary>未列於共用主檔的帳號</summary><div class="form-group"><label for="newUserEmail">手動輸入 Google 帳號 Email</label><input type="email" id="newUserEmail" placeholder="user@company.com"></div></details></div>
+            <div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closePermissionCreateModal()">取消</button><button type="button" class="btn btn-primary" onclick="addWhitelistUser()">新增</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="memberPage" class="page hidden">
+        <div class="panel admin-wide-panel">
+          <div class="management-page-head"><div><h2 class="detail-title"><i data-lucide="contact-round" class="detail-title-icon"></i>人員管理</h2><p class="page-desc">維護與印鑑系統共用的人員主檔；郵件系統角色請至「權限管理」設定。</p></div><div class="management-head-actions"><button type="button" class="btn btn-primary" onclick="startNewSharedMember()"><i data-lucide="user-plus"></i>新增人員</button><details class="management-more"><summary class="btn btn-gray"><i data-lucide="ellipsis"></i>更多</summary><div class="management-more-list"><button type="button" onclick="chooseMemberImport()">匯入 Excel</button><button type="button" onclick="exportSharedMembers()">匯出名單</button><button type="button" onclick="downloadMemberTemplate()">下載標準範本</button></div></details><input id="memberImportInput" type="file" accept=".xlsx,.xls,.csv" hidden onchange="importSharedMembers(this.files[0]);this.value=''" aria-label="匯入人員 Excel"></div></div>
+          <div id="memberSummary" class="member-summary"></div>
+          <div class="management-filter-row"><input id="memberSearch" type="search" placeholder="搜尋姓名、部門、員工編號或 Google 帳號" oninput="renderSharedMemberTable()" aria-label="搜尋人員"><select id="memberDepartmentFilter" onchange="renderSharedMemberTable()" aria-label="部門篩選"><option value="all">全部部門</option></select><select id="memberStatusFilter" onchange="renderSharedMemberTable()" aria-label="狀態篩選"><option value="all">全部狀態</option><option value="active">啟用</option><option value="inactive">停用</option></select><button type="button" class="btn btn-gray" onclick="resetMemberFilters()"><i data-lucide="rotate-ccw"></i>清除條件</button></div>
+          <div id="memberTableArea"></div>
+        </div>
+        <div id="memberEditor" class="management-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="memberEditorTitle">
+          <div class="management-modal management-modal-wide"><div class="management-modal-head"><div><h2 id="memberEditorTitle">新增人員</h2><p>維護共用人員主檔及登入用 Google 帳號。</p></div><button type="button" class="management-modal-close" onclick="cancelSharedMemberEdit()" aria-label="關閉">×</button></div>
+            <div class="management-modal-body member-form-grid"><div class="form-group"><label for="memberDepartment">部門 *</label><select id="memberDepartment"></select></div><div class="form-group"><label for="memberName">姓名 *</label><input id="memberName" autocomplete="off"></div><div class="form-group"><label for="memberEmployeeNo">員工編號 *</label><input id="memberEmployeeNo" autocomplete="off"></div><div class="form-group"><label for="memberGoogleEmail">Google 帳號</label><input id="memberGoogleEmail" type="email" placeholder="name@gmail.com"></div><div class="form-group"><label for="memberStatus">狀態</label><select id="memberStatus"><option value="true">啟用</option><option value="false">停用</option></select></div></div>
+            <div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="cancelSharedMemberEdit()">取消</button><button type="button" id="memberSaveButton" class="btn btn-primary" onclick="saveSharedMember()">新增</button></div>
+          </div>
         </div>
       </section>
 
@@ -456,6 +453,12 @@
     </main>
   </div>
 </div>
+
+<dialog id="memberImportDialog" class="member-import-dialog" aria-labelledby="memberImportTitle">
+  <div class="management-modal-head"><div><h2 id="memberImportTitle">匯入共用人員</h2><p>先預覽新增、更新與錯誤資料，確認後才寫入。</p></div><button type="button" class="management-modal-close" onclick="closeMemberImport()" aria-label="關閉">×</button></div>
+  <div class="management-modal-body"><div class="member-import-choice"><label><input type="radio" name="memberImportMode" value="partial" checked onchange="updateMemberImportMode()">部分名單更新</label><label><input type="radio" name="memberImportMode" value="full" onchange="updateMemberImportMode()">完整名單核對</label><button type="button" class="btn btn-gray" onclick="document.getElementById('memberImportInput').click()">選擇 Excel</button></div><p class="page-desc">完整名單核對時，未出現在檔案的人員只會列出供核對；勾選後才會停用。</p><div id="memberImportSummary" class="member-import-summary"></div><div id="memberImportErrors" class="member-import-errors"></div><div id="memberImportReview" class="table-wrap"></div><div id="memberImportMissing"></div></div>
+  <div class="management-modal-actions"><button type="button" class="btn btn-gray" onclick="closeMemberImport()">取消</button><button type="button" id="confirmMemberImportButton" class="btn btn-primary" onclick="confirmSharedMemberImport()" disabled>確認匯入</button></div>
+</dialog>
 
 <dialog id="excelImportDialog" class="excel-import-dialog" aria-labelledby="excelImportTitle">
   <div class="excel-import-head">
@@ -484,6 +487,6 @@
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.0"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.13"></script>
+<script src="./app.js?v=1.9.14"></script>
 </body>
 </html>
