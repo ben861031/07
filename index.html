@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.14">
+<link rel="stylesheet" href="./styles.css?v=1.9.15">
 </head>
 <body>
 
@@ -49,7 +49,7 @@
           </div>
         </div>
       </nav>
-      <div class="top-user-area"><i data-lucide="user-round" class="top-user-icon"></i><div class="top-user-text"><strong id="sidebarUserName">使用者</strong><small id="sidebarUserEmail">-</small></div><button class="top-logout-btn" onclick="logout()">登出</button></div>
+      <div class="top-user-area"><i data-lucide="user-round" class="top-user-icon"></i><div class="top-user-text"><strong id="sidebarUserName">使用者</strong></div><button class="top-logout-btn" onclick="logout()">登出</button></div>
     </header>
 
     <main class="main">
@@ -401,7 +401,7 @@
 
       <section id="permissionPage" class="page hidden">
         <div class="panel admin-wide-panel">
-          <div class="management-page-head"><div><h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2><p class="page-desc">從共用人員選擇同仁，再設定此人在郵件系統的角色與啟用狀態。</p></div><button type="button" class="btn btn-primary" onclick="openPermissionCreateModal()"><i data-lucide="user-plus"></i>新增權限</button></div>
+          <div class="management-page-head"><div><h2 class="detail-title"><i data-lucide="users" class="detail-title-icon"></i>權限管理</h2><p class="page-desc">從共用人員選擇同仁，再設定此人在郵件系統的角色與啟用狀態。</p></div><button type="button" class="btn btn-primary page-heading-action" onclick="openPermissionCreateModal()"><i data-lucide="user-plus"></i><span>新增權限</span></button></div>
           <div class="permission-role-guide"><article><i data-lucide="mail-check"></i><div><strong>一般使用者</strong><span>登錄、查詢郵件及產生簽收單。</span></div></article><article><i data-lucide="shield-check"></i><div><strong>系統管理員</strong><span>使用全部功能及管理權限。</span></div></article></div>
           <div class="management-filter-row">
             <input id="permissionSearch" type="search" placeholder="搜尋姓名、部門、員工編號或 Email" oninput="renderUserList()" aria-label="搜尋權限帳號">
@@ -487,6 +487,6 @@
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.0"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.14"></script>
+<script src="./app.js?v=1.9.15"></script>
 </body>
 </html>

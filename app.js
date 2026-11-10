@@ -34,6 +34,7 @@ function ymStr(d=new Date()){return d.toISOString().slice(0,7)}
 function formatDate(v){if(!v)return "-"; if(v.seconds)return new Date(v.seconds*1000).toLocaleString("zh-TW"); if(/^\d{4}-\d{2}-\d{2}$/.test(String(v)))return String(v).replaceAll("-","/"); return new Date(v).toLocaleString("zh-TW")}
 function getTime(v){if(!v)return 0;if(typeof v.toMillis==='function')return v.toMillis();if(v.seconds)return (v.seconds*1000)+Math.floor((v.nanoseconds||0)/1000000);return new Date(v).getTime()||0}
 function canAdmin(){return currentRole==="admin"}
+function mailUserDisplayName(member,account,authUser){const department=String(member?.department||member?.departmentName||account?.departmentName||account?.department||"").trim();const rawName=String(member?.name||account?.employeeName||account?.name||authUser?.displayName||"").trim();const name=rawName.includes("@")?"":rawName;return [department,name].filter(Boolean).join(" ")||"使用者"}
 function blockUserAdminAction(){ if(canAdmin()) return false; alert("此功能僅限 Admin 使用"); return true; }
 function blockSharedMemberAction(){if(currentIsSystemAdmin)return false;alert("共用人員主檔僅限總系統管理員維護");return true}
 function mailLabel(r){return r.trackingNo||r.receiver||r.id||"郵件"}
@@ -909,10 +910,10 @@ onAuthStateChanged(auth,async(user)=>{
     let member=null;
     if(memberId){try{const memberSnap=await getDoc(doc(db,"members",memberId));if(memberSnap.exists())member={id:memberSnap.id,...memberSnap.data()}}catch(error){console.warn("共用人員主檔暫時無法讀取，沿用原郵件白名單登入",error)}}
     if(member?.active===false&&!currentIsSystemAdmin){alert("此共用人員帳號已停用，請洽系統管理員");await signOut(auth);return}
-    currentRole=currentIsSystemAdmin?"admin":found.role||"user";currentUser=member?.name||user.displayName||user.email;currentUserEmail=user.email;
+    currentRole=currentIsSystemAdmin?"admin":found.role||"user";currentUser=mailUserDisplayName(member,found,user);currentUserEmail=user.email;
     localStorage.setItem("mailUserRole",currentRole);localStorage.setItem("mailUserEmail",user.email);localStorage.setItem("mailUserName",currentUser);
     if(!sessionStorage.getItem("mailLoginLogged")){try{await addDoc(collection(db,"mailLoginLogs"),{name:currentUser,email:user.email,role:currentRole,loginTime:new Date()});sessionStorage.setItem("mailLoginLogged","true")}catch(error){console.warn("登入紀錄寫入失敗",error)}}
-    $("sidebarUserName").textContent=currentUser;$("sidebarUserEmail").textContent=user.email;$("loginPage").style.display="none";
+    $("sidebarUserName").textContent=currentUser;$("loginPage").style.display="none";
     try{await Promise.all([loadDepartments(),loadMailTypes()]);await Promise.all([loadUsers(),loadMailRecords(),loadOutgoingBatches(),loadLoginLogs()])}catch(error){console.error("系統初始化部分資料載入失敗",error);alert("系統資料載入失敗："+(error?.message||error))}
     applyRoleAccess();restoreLastPage();$("systemArea").style.display="block";requestAnimationFrame(()=>$("systemArea").style.opacity="1");resetMailForm();prepareGeneralOutgoingPage();prepareOutgoingPage();if(window.lucide)lucide.createIcons();
   }catch(error){console.error("登入驗證失敗",error);alert("登入驗證失敗："+(error?.message||error));await signOut(auth)}
