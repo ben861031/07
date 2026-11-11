@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.17">
+<link rel="stylesheet" href="./styles.css?v=1.9.18">
 </head>
 <body>
 
@@ -213,7 +213,7 @@
           <div class="print-action-row page-action-header">
             <div>
               <h2 class="detail-title"><i data-lucide="mail-plus" class="detail-title-icon"></i>一般寄件登錄</h2>
-              <p class="page-desc">適用平信與少量掛號；掛號號碼可先留空，郵局交寄後再補登。</p>
+              <p class="page-desc">適用平信與少量掛號；有號碼時請記錄完整 14 或 20 碼，也可交寄後補登。</p>
             </div>
             <div class="general-outgoing-header-actions">
               <span class="pending-outgoing-chip"><i data-lucide="clock-3"></i>待補號碼 <b id="generalOutgoingPendingCount">0</b></span>
@@ -235,8 +235,14 @@
           </div>
           <div class="incoming-help-line">
             <i data-lucide="circle-help"></i>
-            <span>收件人與地址可查找一般寄件、大宗掛號的歷史名單；平信不需要單號，掛號、限掛與快捷可交寄後補登。</span>
+            <span>收件人與地址可查找寄件歷史；掛號、限掛與快捷可交寄後補登完整 14／20 碼。</span>
           </div>
+          <div class="general-tracking-suffix">
+            <div><strong>14 碼快速補齊</strong><small>若只輸入前 6 碼，請核對執據後填入同批後 8 碼；20 碼請直接輸入完整號碼。</small></div>
+            <label>同批後 8 碼<input id="generalPostalSuffix8" inputmode="numeric" maxlength="8" placeholder="收寄局 6 碼＋種類 2 碼" oninput="refreshGeneralOutgoingRows()"></label>
+            <button type="button" class="btn btn-gray" onclick="useLatestGeneralPostalSuffix()">帶入最近大宗後 8 碼</button>
+          </div>
+          <p id="generalTrackingPreview" class="general-tracking-preview" aria-live="polite"></p>
           <div class="table-wrap general-outgoing-entry-wrap">
             <table class="outgoing-entry-table general-outgoing-entry-table">
               <thead>
@@ -470,6 +476,7 @@
     <button type="button" class="excel-import-close" onclick="closeExcelImportDialog()" aria-label="關閉預覽">×</button>
   </div>
   <div id="excelImportSummary" class="excel-import-summary" role="status"></div>
+  <div class="excel-import-suffix"><div><strong>Excel 只有前 6 碼？</strong><small>請核對執據，填入同批後 8 碼，預覽會顯示補齊後的 14 碼。20 碼請在表格中填完整號碼。</small></div><label>同批後 8 碼<input id="excelImportSuffix8" inputmode="numeric" maxlength="8" placeholder="後 8 碼" oninput="refreshExcelImportValidation()"></label><button type="button" class="btn btn-gray" onclick="useLatestExcelPostalSuffix()">帶入最近大宗後 8 碼</button></div>
   <div class="excel-import-mapping">
     <div class="excel-import-source-selects">
       <label>工作表<select id="excelImportSheet" onchange="changeExcelImportSource()"></select></label>
@@ -480,7 +487,7 @@
   </div>
   <div id="excelImportErrors" class="excel-import-errors" aria-live="polite"></div>
   <div class="excel-import-table-wrap">
-    <table class="excel-import-table"><thead><tr><th>匯入</th><th>Excel 列</th><th>交寄日期</th><th>郵件種類</th><th>掛號編號</th><th>收件人／單位</th><th>寄達地址</th><th>寄件公司</th><th>備註</th><th>檢查結果</th></tr></thead><tbody id="excelImportRows"></tbody></table>
+    <table class="excel-import-table"><thead><tr><th>匯入</th><th>Excel 列</th><th>交寄日期</th><th>郵件種類</th><th>掛號號碼（14／20 碼）</th><th>收件人／單位</th><th>寄達地址</th><th>寄件公司</th><th>備註</th><th>檢查結果</th></tr></thead><tbody id="excelImportRows"></tbody></table>
   </div>
   <div class="excel-import-footer">
     <span>資料只在此預覽；按「確定匯入」後才會儲存。</span>
@@ -491,6 +498,6 @@
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.0"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.17"></script>
+<script src="./app.js?v=1.9.18"></script>
 </body>
 </html>

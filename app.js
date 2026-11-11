@@ -372,9 +372,11 @@ async function togglePrinted(id,printed){const r=mailRecords.find(x=>x.id===id);
 window.togglePrinted=togglePrinted;
 
 function requiresOutgoingTracking(mailType){return /掛號|限掛|快捷/.test(mailType||"")}
-function generalOutgoingTrackingStatus(record){if((record.trackingNo||"").trim())return "completed";if(requiresOutgoingTracking(record.mailType))return "pending";return "not_required"}
+function generalPostalDigits(value){return PostalTracking.digits(String(value??"").normalize("NFKC"))}
+function resolveGeneralTrackingNumber(value,suffix=""){const number=generalPostalDigits(value),tail=generalPostalDigits(suffix);if(!number)return {number:"",error:""};if(PostalTracking.validFull(number))return {number,error:""};if(/^\d{6}$/.test(number))return PostalTracking.validSuffix(tail)?{number:number+tail,error:""}:{number:"",error:"前 6 碼須補同批後 8 碼，或直接填完整 14／20 碼"};return {number:"",error:"掛號號碼須為完整 14 或 20 碼；只有前 6 碼時請填同批後 8 碼"}}
+function generalOutgoingTrackingStatus(record){const number=generalPostalDigits(record.trackingNo);if(PostalTracking.validFull(number))return "completed";if(number||requiresOutgoingTracking(record.mailType))return "pending";return "not_required"}
 function generalOutgoingStatusLabel(status){return {pending:"待補號碼",completed:"已有號碼",not_required:"無須單號"}[status]||"未分類"}
-function generalOutgoingStatusBadge(record){const status=generalOutgoingTrackingStatus(record),className=status==="pending"?"badge-yellow":status==="completed"?"badge-green":"badge-gray";return `<span class="badge ${className}">${generalOutgoingStatusLabel(status)}</span>`}
+function generalOutgoingStatusBadge(record){const status=generalOutgoingTrackingStatus(record),className=status==="pending"?"badge-yellow":status==="completed"?"badge-green":"badge-gray",label=record.trackingNo&&!PostalTracking.validFull(generalPostalDigits(record.trackingNo))?"待補完整碼":generalOutgoingStatusLabel(status);return `<span class="badge ${className}">${label}</span>`}
 function generalOutgoingRecordLabel(record){return record.trackingNo||record.recordNo||record.receiverName||record.id||"一般寄件"}
 function generalOutgoingTypeOptions(selected=""){return generalOutgoingTypes().map(type=>`<option value="${esc(type)}" ${type===selected?"selected":""}>${esc(type)}</option>`).join("")}
 function generalOutgoingRowHtml(item={},index=0){const type=item.mailType||"平信",addressListId=`outgoingAddressOptions${++outgoingSuggestionListSerial}`;return `<tr class="general-outgoing-entry-row" data-id="${esc(item.id||"")}">
@@ -382,19 +384,20 @@ function generalOutgoingRowHtml(item={},index=0){const type=item.mailType||"平�
   <td><select data-field="mailType">${generalOutgoingTypeOptions(type)}</select></td>
   <td><div class="receiver-combobox"><input data-field="receiverName" value="${esc(item.receiverName||"")}" list="outgoingRecipientOptions" autocomplete="off" placeholder="姓名或單位" aria-label="收件人或單位，可輸入關鍵字或展開寄件歷史名單"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史收件人或單位" onclick="openOutgoingSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div></td>
   <td><div class="receiver-combobox"><input data-field="address" value="${esc(item.address||"")}" list="outgoingAddressOptions" autocomplete="off" placeholder="完整寄達地址" aria-label="寄達地址，可輸入關鍵字或展開歷史地址"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史寄達地址" onclick="openOutgoingSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><datalist id="${addressListId}" class="outgoing-address-suggestion-list"></datalist></div></td>
-  <td><input data-field="trackingNo" value="${esc(item.trackingNo||"")}" placeholder="可稍後補登"></td>
+  <td><input data-field="trackingNo" inputmode="numeric" maxlength="30" value="${esc(item.trackingNo||"")}" placeholder="完整 14／20 碼或前 6 碼"></td>
   <td><input data-field="remark" value="${esc(item.remark||"")}" placeholder="選填"></td>
   <td class="incoming-row-actions"><div class="row-action-group"><button type="button" class="btn btn-gray row-action-btn" title="複製上一列內容" onclick="copyPreviousGeneralOutgoingRow(this)">複製</button><button type="button" class="btn btn-gray row-action-btn" title="在下方新增空白列" onclick="addBlankGeneralOutgoingRow(this)">新增</button><button type="button" class="btn btn-red row-action-btn" title="刪除這一列" onclick="removeGeneralOutgoingRow(this)">刪除</button></div></td>
 </tr>`}
 function generalOutgoingRowValues(row){const value=name=>row.querySelector(`[data-field="${name}"]`)?.value.trim()||"";return {id:row.dataset.id||"",mailType:value("mailType"),receiverName:value("receiverName"),address:value("address"),trackingNo:value("trackingNo"),remark:value("remark")}}
 function generalOutgoingRawItems(){return [...document.querySelectorAll(".general-outgoing-entry-row")].map(generalOutgoingRowValues)}
-function syncGeneralOutgoingTrackingInput(row){const type=row.querySelector('[data-field="mailType"]')?.value||"",input=row.querySelector('[data-field="trackingNo"]');if(!input)return;const required=requiresOutgoingTracking(type);input.placeholder=required?"可稍後補登":"此類型無須填寫";row.classList.toggle("tracking-pending",required&&!input.value.trim())}
-function refreshGeneralOutgoingRows(){const rows=[...document.querySelectorAll(".general-outgoing-entry-row")];rows.forEach((row,index)=>{row.querySelector(".general-outgoing-seq").textContent=index+1;syncGeneralOutgoingTrackingInput(row)});const valid=rows.map(generalOutgoingRowValues).filter(item=>item.receiverName&&item.address).length;$("generalOutgoingItemCount").textContent=`有效資料 ${valid} 件`;if(window.lucide)lucide.createIcons()}
+function syncGeneralOutgoingTrackingInput(row){const type=row.querySelector('[data-field="mailType"]')?.value||"",input=row.querySelector('[data-field="trackingNo"]');if(!input)return;const required=requiresOutgoingTracking(type);input.placeholder=required?"完整 14／20 碼，可稍後補登":"有號碼請填完整 14／20 碼";row.classList.toggle("tracking-pending",required&&!resolveGeneralTrackingNumber(input.value,$("generalPostalSuffix8")?.value||"").number)}
+function refreshGeneralOutgoingRows(){const rows=[...document.querySelectorAll(".general-outgoing-entry-row")],suffix=$("generalPostalSuffix8")?.value||"";rows.forEach((row,index)=>{row.querySelector(".general-outgoing-seq").textContent=index+1;syncGeneralOutgoingTrackingInput(row)});const valid=rows.map(generalOutgoingRowValues).filter(item=>item.receiverName&&item.address).length,shorts=rows.map(generalOutgoingRowValues).filter(item=>item.receiverName&&item.address&&/^\d{6}$/.test(generalPostalDigits(item.trackingNo)));$("generalOutgoingItemCount").textContent=`有效資料 ${valid} 件`;const preview=$("generalTrackingPreview");if(preview)preview.textContent=shorts.length?(PostalTracking.validSuffix(generalPostalDigits(suffix))?`將補齊 ${shorts.length} 筆 14 碼；例如 ${generalPostalDigits(shorts[0].trackingNo)+generalPostalDigits(suffix)}。請核對執據。`:`有 ${shorts.length} 筆只填前 6 碼，請填同批後 8 碼，或直接輸入完整 14／20 碼。`):"";if(window.lucide)lucide.createIcons()}
+function useLatestGeneralPostalSuffix(){const latest=latestPostalSuffixBatch();if(!latest){alert("目前沒有已確認的大宗後 8 碼，請依郵局執據手動填寫。");return}$("generalPostalSuffix8").value=latest.postalSuffix8;refreshGeneralOutgoingRows()} window.useLatestGeneralPostalSuffix=useLatestGeneralPostalSuffix;
 function moveGeneralOutgoingCell(control,key){const row=control.closest(".general-outgoing-entry-row"),rows=[...document.querySelectorAll(".general-outgoing-entry-row")],fields=["mailType","receiverName","address","trackingNo","remark"],rowIndex=rows.indexOf(row),fieldIndex=fields.indexOf(control.dataset.field);if(rowIndex<0||fieldIndex<0)return;let nextRow=rowIndex,nextField=fieldIndex;if(key==="ArrowUp")nextRow--;if(key==="ArrowDown"||key==="Enter")nextRow++;if(key==="ArrowLeft")nextField--;if(key==="ArrowRight")nextField++;if(nextField<0){nextRow--;nextField=fields.length-1}if(nextField>=fields.length){nextRow++;nextField=0}if(nextRow>=rows.length){rows[rows.length-1].insertAdjacentHTML("afterend",generalOutgoingRowHtml({mailType:control.dataset.field==="mailType"?control.value:"平信"},rows.length));bindGeneralOutgoingGrid();rows=[...document.querySelectorAll(".general-outgoing-entry-row")]}if(nextRow<0||nextRow>=rows.length)return;const target=rows[nextRow].querySelector(`[data-field="${fields[nextField]}"]`);if(target){target.focus();if(target.select&&target.tagName!=="SELECT")target.select()}}
 function bindGeneralOutgoingGrid(){const body=$("generalOutgoingRows");if(!body)return;body.oninput=event=>{if(event.target.dataset.field==="receiverName")updateOutgoingRecipientSuggestions(event.target);if(event.target.dataset.field==="address"){delete event.target.dataset.suggestedFor;delete event.target.dataset.suggestedAddress}if(event.target.dataset.field==="trackingNo")syncGeneralOutgoingTrackingInput(event.target.closest("tr"));refreshGeneralOutgoingRows()};body.onchange=event=>{if(event.target.dataset.field==="mailType")syncGeneralOutgoingTrackingInput(event.target.closest("tr"));refreshGeneralOutgoingRows()};body.onkeydown=event=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(event.key)){event.preventDefault();moveGeneralOutgoingCell(event.target,event.key)}}}
 function renderGeneralOutgoingRows(items=[]){const rows=items.length?items:[{mailType:"平信"},{mailType:"平信"}];$("generalOutgoingRows").innerHTML=rows.map(generalOutgoingRowHtml).join("");bindGeneralOutgoingGrid();refreshAllOutgoingAddressSuggestions();refreshGeneralOutgoingRows()}
 function prepareGeneralOutgoingPage(){if(!$("generalOutgoingDate").value)$("generalOutgoingDate").value=todayStr();if(!$("generalOutgoingRows").children.length)renderGeneralOutgoingRows();if(!$("generalOutgoingSender").value)$("generalOutgoingSender").value=localStorage.getItem("outgoingSenderName")||"";renderGeneralOutgoingList()} window.prepareGeneralOutgoingPage=prepareGeneralOutgoingPage;
-function resetGeneralOutgoingForm(force=false){const hasInput=generalOutgoingRawItems().some(item=>item.receiverName||item.address||item.trackingNo||item.remark);if(!force&&hasInput&&!confirm("目前填寫的寄件資料將會清除，確定要清空重填嗎？"))return;$("generalOutgoingDate").value=todayStr();$("generalOutgoingSender").value=localStorage.getItem("outgoingSenderName")||"";renderGeneralOutgoingRows()} window.resetGeneralOutgoingForm=resetGeneralOutgoingForm;
+function resetGeneralOutgoingForm(force=false){const hasInput=generalOutgoingRawItems().some(item=>item.receiverName||item.address||item.trackingNo||item.remark);if(!force&&hasInput&&!confirm("目前填寫的寄件資料將會清除，確定要清空重填嗎？"))return;$("generalOutgoingDate").value=todayStr();$("generalOutgoingSender").value=localStorage.getItem("outgoingSenderName")||"";$("generalPostalSuffix8").value="";renderGeneralOutgoingRows()} window.resetGeneralOutgoingForm=resetGeneralOutgoingForm;
 function copyPreviousGeneralOutgoingRow(button){const row=button.closest("tr"),rows=[...document.querySelectorAll(".general-outgoing-entry-row")],index=rows.indexOf(row);if(index<=0){alert("第一列沒有上一列可以複製");return}const values=generalOutgoingRowValues(rows[index-1]);Object.entries(values).forEach(([field,value])=>{if(field==="id")return;const control=row.querySelector(`[data-field="${field}"]`);if(control)control.value=value});row.dataset.id="";refreshOutgoingAddressSuggestions(row);refreshGeneralOutgoingRows();row.querySelector('[data-field="receiverName"]').focus()} window.copyPreviousGeneralOutgoingRow=copyPreviousGeneralOutgoingRow;
 function addBlankGeneralOutgoingRow(button){const row=button.closest("tr"),index=[...document.querySelectorAll(".general-outgoing-entry-row")].indexOf(row);row.insertAdjacentHTML("afterend",generalOutgoingRowHtml({mailType:"平信"},index+1));bindGeneralOutgoingGrid();refreshGeneralOutgoingRows();row.nextElementSibling.querySelector('[data-field="mailType"]').focus()} window.addBlankGeneralOutgoingRow=addBlankGeneralOutgoingRow;
 function removeGeneralOutgoingRow(button){const row=button.closest("tr"),rows=[...document.querySelectorAll(".general-outgoing-entry-row")];if(rows.length===1){renderGeneralOutgoingRows();return}row.remove();refreshGeneralOutgoingRows()} window.removeGeneralOutgoingRow=removeGeneralOutgoingRow;
@@ -406,6 +409,11 @@ async function saveGeneralOutgoingRecords(){
   if(incomplete.length&&!confirm("有些列只填寫了收件人或地址，這些列不會建檔。是否繼續？"))return;
   const items=raw.filter(item=>item.receiverName&&item.address);
   if(!items.length){alert("請至少完整填寫一筆收件人與寄達地址");return}
+  const suffix=$("generalPostalSuffix8").value.trim();
+  if(suffix&&!PostalTracking.validSuffix(generalPostalDigits(suffix))){alert("同批後 8 碼須為 8 位數字；請核對郵局執據");return}
+  const shortTypes=[...new Set(items.filter(item=>/^\d{6}$/.test(generalPostalDigits(item.trackingNo))).map(item=>item.mailType))];
+  if(shortTypes.length>1&&!confirm(`前 6 碼資料包含 ${shortTypes.join("、")}，都將使用同一組後 8 碼。請確認郵局執據上的種類碼相同，是否繼續？`))return;
+  for(const [index,item] of items.entries()){const resolved=resolveGeneralTrackingNumber(item.trackingNo,suffix);if(resolved.error){alert(`第 ${index+1} 筆：${resolved.error}`);return}item.trackingNo=resolved.number}
   localStorage.setItem("outgoingSenderName",senderName);
   try{
     let added=0,updated=0,baseTime=Date.now();
@@ -430,7 +438,7 @@ async function saveGeneralOutgoingRecords(){
     alert(`儲存成功！共新增 ${added} 筆，更新 ${updated} 筆一般寄件。`);
   }catch(error){console.error(error);alert("儲存失敗：" + (error?.message||error))}
 } window.saveGeneralOutgoingRecords=saveGeneralOutgoingRecords;
-function editGeneralOutgoingRecord(id,focusTracking=false){const record=generalOutgoingRecords.find(item=>item.id===id);if(!record)return;showPage("generalOutgoingPage",document.querySelector('[onclick*=generalOutgoingPage]'));$("generalOutgoingDate").value=record.sendDate||todayStr();$("generalOutgoingSender").value=record.senderName||"";renderGeneralOutgoingRows([record]);if(focusTracking)requestAnimationFrame(()=>{const input=$("generalOutgoingRows").querySelector('[data-field="trackingNo"]');input?.focus();input?.select()})} window.editGeneralOutgoingRecord=editGeneralOutgoingRecord;
+function editGeneralOutgoingRecord(id,focusTracking=false){const record=generalOutgoingRecords.find(item=>item.id===id);if(!record)return;showPage("generalOutgoingPage",document.querySelector('[onclick*=generalOutgoingPage]'));$("generalOutgoingDate").value=record.sendDate||todayStr();$("generalOutgoingSender").value=record.senderName||"";$("generalPostalSuffix8").value="";renderGeneralOutgoingRows([record]);if(focusTracking)requestAnimationFrame(()=>{const input=$("generalOutgoingRows").querySelector('[data-field="trackingNo"]');input?.focus();input?.select()})} window.editGeneralOutgoingRecord=editGeneralOutgoingRecord;
 async function deleteGeneralOutgoingRecord(id){const record=generalOutgoingRecords.find(item=>item.id===id);if(!record||!confirm(`確定刪除寄給「${record.receiverName||""}」的寄件紀錄？`))return;await deleteDoc(doc(db,"outgoingMailBatches",id));await writeAuditLog({action:"delete",category:"outgoingMailRecord",targetId:id,targetLabel:generalOutgoingRecordLabel(record),before:record});await loadOutgoingBatches()} window.deleteGeneralOutgoingRecord=deleteGeneralOutgoingRecord;
 function updateHistorySelect(id,values,allLabel){
   const select=$(id);if(!select)return;
@@ -499,6 +507,7 @@ async function openExcelImportPreview(file){
     }).sort((a,b)=>b.score-a.score||b.matrix.length-a.matrix.length);
     const choice=ranked[0];
     $("excelImportFilename").textContent=file.name;
+    $("excelImportSuffix8").value="";
     $("excelImportSheet").innerHTML=excelImportWorkbook.SheetNames.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join("");
     $("excelImportSheet").value=choice.name;
     excelImportCurrentSheet=choice.name;
@@ -572,6 +581,7 @@ function createExcelImportDraft(matrix,headerRow){
   }
   renderExcelImportRows();
 }
+function useLatestExcelPostalSuffix(){const latest=latestPostalSuffixBatch();if(!latest){alert("目前沒有已確認的大宗後 8 碼，請依郵局執據手動填寫。");return}$("excelImportSuffix8").value=latest.postalSuffix8;refreshExcelImportValidation()} window.useLatestExcelPostalSuffix=useLatestExcelPostalSuffix;
 function renderExcelImportRows(){
   const types=[...new Set([...generalOutgoingTypes(),...excelImportRows.map(row=>row.mailType).filter(Boolean)])];
   $("excelImportRows").innerHTML=excelImportRows.map((row,index)=>`<tr id="excelImportRow${index}">
@@ -599,21 +609,22 @@ function toggleExcelImportRow(index,included){
   refreshExcelImportValidation();
 } window.toggleExcelImportRow=toggleExcelImportRow;
 function existingOutgoingTrackingKeys(){
-  return new Set([...generalOutgoingRecords.map(record=>record.trackingNo),...outgoingBatches.flatMap(batch=>(batch.items||[]).map(item=>item.trackingNo))].map(MailExcelImport.trackingKey).filter(Boolean));
+  return new Set([...generalOutgoingRecords.map(record=>record.trackingNo),...outgoingBatches.flatMap(batch=>(batch.items||[]).map(item=>PostalTracking.fullNumber(item,batch)||item.trackingNo))].map(MailExcelImport.trackingKey).filter(Boolean));
 }
 function validateExcelImportRows(){
-  const existing=existingOutgoingTrackingKeys(),seen=new Set();
+  const existing=existingOutgoingTrackingKeys(),seen=new Set(),suffix=$("excelImportSuffix8").value.trim();
   return excelImportRows.map(row=>{
     if(row.imported)return ["已匯入"];
     if(row.excluded)return [];
     const errors=[];
     if(!row.sendDate)errors.push("缺交寄日期");
     if(!row.mailType)errors.push("缺郵件種類");
-    if(!row.trackingNo)errors.push("缺掛號編號");
     if(!row.receiverName)errors.push("缺收件人");
     if(!row.address)errors.push("缺寄達地址");
     if(!row.senderName)errors.push("缺寄件公司");
-    const key=MailExcelImport.trackingKey(row.trackingNo);
+    const resolved=resolveGeneralTrackingNumber(row.trackingNo,suffix);
+    if(row.trackingNo&&resolved.error)errors.push(resolved.error);
+    const key=MailExcelImport.trackingKey(resolved.number);
     if(key){
       if(/^\d+(?:\.\d+)?E[+-]?\d+$/i.test(row.trackingNo))errors.push("編號為科學記號，請核對原始號碼");
       if(row.unsafeTracking&&row.trackingNo===row.originalTracking)errors.push("Excel 數字超過 15 位，請依原始單據重新輸入");
@@ -630,20 +641,23 @@ function refreshExcelImportValidation(){
   const invalid=checks.filter((errors,index)=>!excelImportRows[index].excluded&&!excelImportRows[index].imported&&errors.length).length;
   const excluded=excelImportRows.filter(row=>row.excluded).length,imported=excelImportRows.filter(row=>row.imported).length;
   $("excelImportSummary").innerHTML=`<span>讀取成功 ${excelImportRows.length} 筆</span><span class="ready">即將匯入 ${Math.max(0,active-invalid)} 筆</span><span class="${invalid?"invalid":""}">需修正 ${invalid} 筆</span><span>略過 ${excluded} 筆</span>${imported?`<span>已匯入 ${imported} 筆</span>`:""}`;
-  $("excelImportErrors").textContent=invalid?"請修正紅色資料列，或取消勾選不匯入的列。掛號編號也會與系統既有寄件紀錄比對。":"";
+  $("excelImportErrors").textContent=invalid?"請修正紅色資料列，或取消勾選不匯入的列。6 碼需補同批後 8 碼；完整號碼也會與系統既有寄件紀錄比對。":"";
   for(let index=0;index<checks.length;index++){
     const row=$("excelImportRow"+index),status=$("excelImportStatus"+index),record=excelImportRows[index];
     if(!row||!status)continue;
     row.classList.toggle("has-error",!record.excluded&&!record.imported&&checks[index].length>0);
     row.classList.toggle("is-excluded",record.excluded||record.imported);
     status.className=checks[index].length&&!record.excluded&&!record.imported?"row-error":"row-ready";
-    status.textContent=record.imported?"已匯入":record.excluded?"略過":checks[index].length?checks[index].join("、"):"可匯入";
+    const completed=resolveGeneralTrackingNumber(record.trackingNo,$("excelImportSuffix8").value).number;
+    status.textContent=record.imported?"已匯入":record.excluded?"略過":checks[index].length?checks[index].join("、"):!record.trackingNo?(requiresOutgoingTracking(record.mailType)?"待補號碼":"無須單號"):/^\d{6}$/.test(generalPostalDigits(record.trackingNo))?`將存為 ${completed}`:"可匯入";
   }
   $("confirmExcelImportButton").disabled=excelImportBusy||active===0||invalid>0;
   $("confirmExcelImportButton").textContent=excelImportBusy?"匯入中…":`確定匯入 ${Math.max(0,active-invalid)} 筆`;
   const lockSource=excelImportBusy||imported>0;
   $("excelImportSheet").disabled=lockSource;
   $("excelImportHeaderRow").disabled=lockSource;
+  $("excelImportSuffix8").disabled=excelImportBusy;
+  $("excelImportSuffix8").closest(".excel-import-suffix").querySelector("button").disabled=excelImportBusy;
   $("excelImportMappingFields").querySelectorAll("select").forEach(select=>select.disabled=lockSource);
   $("excelImportDialog").querySelectorAll(".excel-import-close,.excel-import-footer .btn-gray").forEach(button=>button.disabled=excelImportBusy);
   return {active,invalid};
@@ -654,7 +668,9 @@ async function confirmExcelImport(){
   const {active,invalid}=refreshExcelImportValidation();
   if(excelImportBusy||invalid||!active)return;
   excelImportBusy=true;refreshExcelImportValidation();
-  const rows=excelImportRows.filter(row=>!row.excluded&&!row.imported),sourceFile=$("excelImportFilename").textContent;
+  const rows=excelImportRows.filter(row=>!row.excluded&&!row.imported),sourceFile=$("excelImportFilename").textContent,suffix=$("excelImportSuffix8").value.trim();
+  const shortTypes=[...new Set(rows.filter(row=>/^\d{6}$/.test(generalPostalDigits(row.trackingNo))).map(row=>row.mailType))];
+  if(shortTypes.length>1&&!confirm(`6 碼資料包含 ${shortTypes.join("、")}，都將使用同一組後 8 碼。請確認郵局執據上的種類碼相同，是否繼續？`)){excelImportBusy=false;refreshExcelImportValidation();return}
   let saved=0;
   try{
     for(let offset=0;offset<rows.length;offset+=400){
@@ -662,7 +678,8 @@ async function confirmExcelImport(){
       for(const [index,row] of chunk.entries()){
         const ref=doc(collection(db,"outgoingMailBatches"));
         const recordNo=`OUT-${row.sendDate.replaceAll("-","")}-${(baseTime+index).toString(36).toUpperCase()}-${index+1}`;
-        batch.set(ref,{sendDate:row.sendDate,mailType:row.mailType,receiverName:row.receiverName,address:row.address,trackingNo:row.trackingNo,remark:row.remark,senderName:row.senderName,trackingStatus:generalOutgoingTrackingStatus(row),sourceType:"general",entrySource:"excel",importFileName:sourceFile,importRow:row.sourceRow,recordNo,createdTime:new Date(baseTime+index),createdBy:currentUser,createdByEmail:currentUserEmail});
+        const trackingNo=resolveGeneralTrackingNumber(row.trackingNo,suffix).number;
+        batch.set(ref,{sendDate:row.sendDate,mailType:row.mailType,receiverName:row.receiverName,address:row.address,trackingNo,remark:row.remark,senderName:row.senderName,trackingStatus:generalOutgoingTrackingStatus({...row,trackingNo}),sourceType:"general",entrySource:"excel",importFileName:sourceFile,importRow:row.sourceRow,recordNo,createdTime:new Date(baseTime+index),createdBy:currentUser,createdByEmail:currentUserEmail});
       }
       await batch.commit();
       chunk.forEach(row=>row.imported=true);
@@ -695,11 +712,11 @@ function groupCount(list,key){const m={};list.forEach(r=>{const k=r[key]||"未�
 function renderSummary(id,rows){$(id).innerHTML=rows.length?rows.map(([k,v])=>`<div class="summary-item"><strong>${esc(k)}</strong><span>${v} 件</span></div>`).join(""):`<div class="summary-item"><strong>目前無資料</strong><span>0 件</span></div>`}
 
 function getFilteredRecords(){const kw=($("searchInput")?.value||"").toLowerCase();const type=$("typeFilter")?.value||"";const dept=$("deptFilter")?.value||"";const printed=$("printedFilter")?.value||"";const start=$("dateStart")?.value||"";const end=$("dateEnd")?.value||"";return mailRecords.filter(r=>{const text=[r.trackingNo,r.sender,r.department,r.receiver,r.remark,r.mailType].join(" ").toLowerCase();return (!kw||text.includes(kw))&&(!type||r.mailType===type)&&(!dept||r.department===dept)&&(!printed||(printed==="printed"?r.printed:!r.printed))&&(!start||r.receiveDate>=start)&&(!end||r.receiveDate<=end)})}
-function normalizedOutgoingRecords(){const general=generalOutgoingRecords.map(record=>({...record,sourceType:"general",sourceLabel:record.entrySource==="excel"?"Excel 匯入":"一般寄件",trackingStatus:generalOutgoingTrackingStatus(record),senderDisplay:record.senderName||"",postalTrackingNo:PostalTracking.validFull(record.trackingNo)?PostalTracking.digits(record.trackingNo):""}));const bulk=outgoingBatches.flatMap(batch=>(batch.items||[]).map((item,index)=>({...item,sourceType:"bulk",sourceLabel:"大宗寄件",batchId:batch.id,batchNo:batch.batchNo||batch.id,sendDate:batch.sendDate,mailType:batch.mailType,senderName:batch.senderName,senderDisplay:batch.senderName||"",postalTrackingNo:PostalTracking.fullNumber(item,batch),trackingStatus:item.trackingNo?"completed":"pending",itemNo:index+1})));return [...general,...bulk]}
+function normalizedOutgoingRecords(){const general=generalOutgoingRecords.map(record=>({...record,sourceType:"general",sourceLabel:record.entrySource==="excel"?"Excel 匯入":"一般寄件",trackingStatus:generalOutgoingTrackingStatus(record),senderDisplay:record.senderName||"",postalTrackingNo:PostalTracking.validFull(generalPostalDigits(record.trackingNo))?generalPostalDigits(record.trackingNo):""}));const bulk=outgoingBatches.flatMap(batch=>(batch.items||[]).map((item,index)=>({...item,sourceType:"bulk",sourceLabel:"大宗寄件",batchId:batch.id,batchNo:batch.batchNo||batch.id,sendDate:batch.sendDate,mailType:batch.mailType,senderName:batch.senderName,senderDisplay:batch.senderName||"",postalTrackingNo:PostalTracking.fullNumber(item,batch),trackingStatus:item.trackingNo?"completed":"pending",itemNo:index+1})));return [...general,...bulk]}
 function getFilteredOutgoingRecords(){const kw=($("searchInput")?.value||"").toLowerCase(),type=$("typeFilter")?.value||"",source=$("outgoingSourceFilter")?.value||"",status=$("printedFilter")?.value||"",start=$("dateStart")?.value||"",end=$("dateEnd")?.value||"";return normalizedOutgoingRecords().filter(record=>{const text=[record.trackingNo,record.postalTrackingNo,record.receiverName,record.address,record.senderName,record.batchNo,record.recordNo,record.remark,record.mailType,record.sourceLabel].join(" ").toLowerCase();return (!kw||text.includes(kw))&&(!type||record.mailType===type)&&(!source||record.sourceType===source)&&(!status||record.trackingStatus===status)&&(!start||record.sendDate>=start)&&(!end||record.sendDate<=end)}).sort((a,b)=>(getTime(b.updatedTime)||getTime(b.createdTime)||Date.parse(b.sendDate||0))-(getTime(a.updatedTime)||getTime(a.createdTime)||Date.parse(a.sendDate||0)))}
 function setSelectOptions(select,options,current){select.innerHTML=options.map(option=>`<option value="${esc(option.value)}">${esc(option.label)}</option>`).join("");select.value=options.some(option=>option.value===current)?current:""}
 function syncHistoryFilterMode(outgoing){const deptCard=$("deptFilter").closest(".filter-card"),statusSelect=$("printedFilter"),sourceCard=document.querySelector(".outgoing-source-filter"),typeSelect=$("typeFilter"),currentType=typeSelect.value,currentStatus=statusSelect.value;deptCard.style.display=outgoing?"none":"";sourceCard.hidden=!outgoing;sourceCard.style.display=outgoing?"": "none";const types=outgoing?[...new Set([...generalOutgoingTypes(),"掛號函件","限時掛號","快捷郵件"])]:currentMailTypes();setSelectOptions(typeSelect,[{value:"",label:"全部類型"},...types.map(type=>({value:type,label:type}))],currentType);const statuses=outgoing?[{value:"",label:"全部寄件狀態"},{value:"pending",label:"待補掛號號碼"},{value:"completed",label:"已有掛號號碼"},{value:"not_required",label:"無須掛號號碼"}]:[{value:"",label:"全部列印狀態"},{value:"unprinted",label:"未列印"},{value:"printed",label:"已列印"}];setSelectOptions(statusSelect,statuses,currentStatus);$("dateStartLabel").textContent=outgoing?"交寄日期起":"收件日期起";$("dateEndLabel").textContent=outgoing?"交寄日期迄":"收件日期迄"}
-function outgoingQueryStatusBadge(record){if(record.sourceType==="bulk"&&record.trackingNo&&!record.postalTrackingNo)return '<span class="badge badge-yellow">待補完整碼</span>';const className=record.trackingStatus==="pending"?"badge-yellow":record.trackingStatus==="completed"?"badge-green":"badge-gray";return `<span class="badge ${className}">${generalOutgoingStatusLabel(record.trackingStatus)}</span>`}
+function outgoingQueryStatusBadge(record){if(record.trackingNo&&!record.postalTrackingNo)return '<span class="badge badge-yellow">待補完整碼</span>';const className=record.trackingStatus==="pending"?"badge-yellow":record.trackingStatus==="completed"?"badge-green":"badge-gray";return `<span class="badge ${className}">${generalOutgoingStatusLabel(record.trackingStatus)}</span>`}
 const POSTAL_TRACKING_URL="https://postserv.post.gov.tw/pstmail/main_mail.html";
 function copyPostalTrackingNumber(value){
   const number=String(value||"").trim();
@@ -717,7 +734,7 @@ function postalTrackingLink(value,allowAny=false){
   const number=String(value||"").trim();
   return (allowAny||PostalTracking.validFull(number))&&number?`<a class="postal-tracking-link" href="${POSTAL_TRACKING_URL}" target="_blank" rel="noopener noreferrer" data-tracking="${esc(number)}" onclick="copyPostalTrackingNumber(this.dataset.tracking)" title="開啟中華郵政查詢頁並複製號碼；若號碼不完整，請先核對補齊" aria-label="開啟郵局查詢並複製號碼 ${esc(number)}">${esc(number)}<span aria-hidden="true">↗</span></a>`:number?esc(number):"-";
 }
-function postalTrackingCell(record){if(record.postalTrackingNo)return postalTrackingLink(record.postalTrackingNo);return record.sourceType==="bulk"&&record.trackingNo?`${esc(record.trackingNo)}<br><small class="postal-pending">待補完整碼</small>`:postalTrackingLink(record.trackingNo)}
+function postalTrackingCell(record){if(record.postalTrackingNo)return postalTrackingLink(record.postalTrackingNo);return record.trackingNo?`${esc(record.trackingNo)}<br><small class="postal-pending">待補完整碼</small>`:"-"}
 const POSTAL_INCOMING_TYPES=new Set(["掛號","掛號包裹","限掛","限時掛號","快捷","快捷郵件","國內快捷","掛號函件"]);
 function incomingPostalTrackingCell(record){const number=String(record.trackingNo||"").trim(),type=String(record.mailType||"").trim();return number&&POSTAL_INCOMING_TYPES.has(type)?postalTrackingLink(number,true):esc(number||"-")}
 function renderMailTable(){const table=$("mailTable");if(!table)return;const outgoing=$("directionFilter")?.value==="outgoing";syncHistoryFilterMode(outgoing);const filtered=outgoing?getFilteredOutgoingRecords():getFilteredRecords();$("recordCount").textContent=filtered.length;if($("paginationRecordCount"))$("paginationRecordCount").textContent=filtered.length;const total=Math.ceil(filtered.length/pageSize)||1;if(currentPage>total)currentPage=1;const pageRows=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize),head=table.closest("table").querySelector("thead");if(outgoing){head.innerHTML="<tr><th>交寄日期</th><th>類型</th><th>掛號號碼</th><th>收件人</th><th>寄達地址</th><th>寄件公司</th><th>來源</th><th>狀態</th><th>操作</th></tr>";table.innerHTML=pageRows.length?pageRows.map(record=>{const action=record.sourceType==="general"?`<button class="btn ${record.trackingStatus==="pending"?"btn-yellow":"btn-gray"}" onclick="editGeneralOutgoingRecord('${record.id}',${record.trackingStatus==="pending"})">${record.trackingStatus==="pending"?"補登號碼":"編輯"}</button>`:`<button class="btn btn-gray" onclick="editOutgoingBatch('${record.batchId}')">開啟批次</button>`;return `<tr><td>${esc(formatDate(record.sendDate))}</td><td>${esc(record.mailType)}</td><td>${postalTrackingCell(record)}</td><td>${esc(record.receiverName)}</td><td class="outgoing-address-cell">${esc(record.address)}</td><td>${esc(record.senderDisplay||"-")}</td><td><span class="badge badge-gray">${esc(record.sourceLabel)}</span></td><td>${outgoingQueryStatusBadge(record)}</td><td>${action}</td></tr>`}).join(""):`<tr><td colspan="9">目前沒有符合條件的寄件資料</td></tr>`}else{head.innerHTML="<tr><th>收件日期</th><th>類型</th><th>掛號 / 單號</th><th>寄件人</th><th>部門</th><th>收件人</th><th>狀態</th><th>操作</th></tr>";table.innerHTML=pageRows.length?pageRows.map(r=>`<tr><td>${esc(formatDate(r.receiveDate))}</td><td>${esc(r.mailType)}</td><td>${incomingPostalTrackingCell(r)}</td><td>${esc(r.sender)}</td><td>${esc(r.department)}</td><td>${esc(r.receiver)}</td><td>${r.printed?'<span class="badge badge-green">已列印</span>':'<span class="badge badge-yellow">未列印</span>'}</td><td><button class="btn btn-gray" onclick="editMail('${r.id}')">編輯</button> <button class="btn btn-gray" onclick="togglePrinted('${r.id}',${!!r.printed})">${r.printed?'改未列印':'標記列印'}</button> <button class="btn btn-red" onclick="deleteMail('${r.id}')">刪除</button></td></tr>`).join(""):`<tr><td colspan="8">目前沒有符合條件的郵件資料</td></tr>`}renderPagination(total)}
