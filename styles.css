@@ -169,7 +169,7 @@
 .incoming-apply-action svg{width:18px;height:18px}
 .incoming-help-line{display:flex;align-items:center;gap:8px;margin:4px 0 10px;color:#64748b;font-size:13px;font-weight:700}
 .incoming-help-line svg{width:18px;height:18px;color:#94a3b8;flex-shrink:0}
-.receiver-combobox{position:relative;width:100%}
+.receiver-combobox{position:relative;display:block;width:100%}
 .receiver-combobox input{width:100%;padding-right:42px!important}
 .receiver-combobox input::-webkit-calendar-picker-indicator{display:none!important}
 .receiver-combobox-toggle{position:absolute;right:4px;top:50%;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;transform:translateY(-50%)}
@@ -373,6 +373,7 @@ button,input,select,textarea{font:inherit}
 .general-outgoing-meta{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:14px;margin:4px 0 2px}
 .general-outgoing-meta .form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .general-outgoing-meta .form-group>span{font-size:13px;font-weight:800;color:#475569}
+.general-outgoing-meta .form-group>label{margin-bottom:0;font-size:13px;font-weight:800;color:#475569}
 .general-outgoing-meta input,.general-outgoing-meta select{width:100%;height:52px;padding:0 16px;border:1px solid #dbe4f0;border-radius:14px;background:#fff;font-size:14px}
 .general-outgoing-meta input:focus,.general-outgoing-meta select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.08)}
 .general-outgoing-entry-table{min-width:1120px}
