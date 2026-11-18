@@ -746,3 +746,43 @@ button,input,select,textarea{font:inherit}
 .member-missing-list label{display:flex;align-items:center;gap:9px;padding:10px;border:1px solid #dbe4f0;border-radius:9px;color:#334155;font-size:12px}
 @media(max-width:900px){.management-filter-row{grid-template-columns:1fr 1fr}.management-filter-row input{grid-column:1/-1}.member-import-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.member-import-summary>div:first-child{grid-column:1/-1}}
 @media(max-width:600px){.management-page-head{flex-direction:column}.management-page-head .page-heading-action{width:100%}.management-head-actions{width:100%;justify-content:flex-start}.member-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.management-filter-row{grid-template-columns:1fr}.management-filter-row input{grid-column:auto}.permission-role-guide{grid-template-columns:1fr}.member-form-grid{grid-template-columns:1fr}.member-import-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.member-missing-list{grid-template-columns:1fr}.management-modal-body,.management-modal-head,.management-modal-actions{padding-left:16px;padding-right:16px}.member-import-choice{align-items:stretch;flex-direction:column}}
+
+/* v1.9.19: keep the everyday outgoing form focused on entry. */
+.general-tools-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.general-extra-tool{min-width:0;border:1px solid #dbe5f2;border-radius:14px;background:#f8fbff}
+.general-extra-tool>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;list-style:none;cursor:pointer;color:#334155}
+.general-extra-tool>summary::-webkit-details-marker{display:none}
+.general-extra-tool>summary>span{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.general-extra-tool>summary svg{width:18px;height:18px;color:#2563eb;flex:none}
+.general-extra-tool>summary strong{font-size:14px}
+.general-extra-tool>summary small{font-size:12px;color:#64748b}
+.general-extra-tool>summary .general-tool-chevron{color:#64748b;transition:transform .18s}
+.general-extra-tool[open]>summary .general-tool-chevron{transform:rotate(180deg)}
+.general-extra-tool[open]>summary{border-bottom:1px solid #dbe5f2}
+.general-extra-tool .general-import-bar,.general-extra-tool .general-tracking-suffix{margin:0;border:0;border-radius:0 0 14px 14px;background:transparent}
+.general-extra-tool .general-tracking-suffix>div>strong{display:none}
+.outgoing-save-status{margin:0 0 14px;padding:10px 14px;border:1px solid #a7e7c0;border-radius:11px;background:#f0fdf4;color:#166534;font-size:14px;font-weight:700}
+.outgoing-save-status.is-warning{border-color:#fcd34d;background:#fffbeb;color:#92400e}
+.outgoing-save-status[hidden]{display:none}
+
+@media(max-width:720px){
+  .general-tools-grid{grid-template-columns:1fr}
+  /* The two everyday entry grids become one card per mail on a phone. */
+  #registerPage .outgoing-entry-wrap,#generalOutgoingPage .general-outgoing-entry-wrap{overflow:visible;border:0;background:transparent}
+  #registerPage .incoming-entry-table,#generalOutgoingPage .general-outgoing-entry-table{display:block;width:100%;min-width:0;table-layout:auto;border:0;background:transparent}
+  #registerPage .incoming-entry-table thead,#generalOutgoingPage .general-outgoing-entry-table thead{display:none}
+  #registerPage .incoming-entry-table tbody,#generalOutgoingPage .general-outgoing-entry-table tbody{display:block}
+  #registerPage .incoming-entry-table tr,#generalOutgoingPage .general-outgoing-entry-table tr{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:0 0 14px;padding:14px;border:1px solid #dbe4f0;border-radius:16px;background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.04)}
+  #registerPage .incoming-entry-table td,#generalOutgoingPage .general-outgoing-entry-table td{display:block;width:100%;min-width:0;padding:6px 0;border:0;background:transparent;text-align:left}
+  #registerPage .incoming-entry-table td[data-label]::before,#generalOutgoingPage .general-outgoing-entry-table td[data-label]::before{content:attr(data-label);display:block;margin:0 0 6px;color:#475569;font-size:12px;font-weight:800}
+  #registerPage .incoming-entry-table .incoming-seq,#generalOutgoingPage .general-outgoing-entry-table .general-outgoing-seq{padding:0 0 10px;margin-bottom:3px;border-bottom:1px solid #e9eef6;color:#1e40af;font-size:15px;font-weight:800;text-align:left!important}
+  #registerPage .incoming-entry-table .incoming-seq::before,#generalOutgoingPage .general-outgoing-entry-table .general-outgoing-seq::before{content:"第 "}
+  #registerPage .incoming-entry-table .incoming-seq::after,#generalOutgoingPage .general-outgoing-entry-table .general-outgoing-seq::after{content:" 筆"}
+  #registerPage .incoming-entry-table input,#registerPage .incoming-entry-table select,#generalOutgoingPage .general-outgoing-entry-table input,#generalOutgoingPage .general-outgoing-entry-table select{width:100%;min-width:0;height:44px;font-size:15px}
+  #registerPage .incoming-entry-table .receiver-combobox,#generalOutgoingPage .general-outgoing-entry-table .receiver-combobox{width:100%;min-width:0}
+  #registerPage .incoming-entry-table .incoming-row-actions,#generalOutgoingPage .general-outgoing-entry-table .incoming-row-actions{min-width:0;margin-top:6px;padding-top:12px;border-top:1px solid #e9eef6}
+  #registerPage .incoming-entry-table .row-action-group,#generalOutgoingPage .general-outgoing-entry-table .row-action-group{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+  #registerPage .incoming-entry-table .row-action-btn,#generalOutgoingPage .general-outgoing-entry-table .row-action-btn{width:100%;min-width:0;padding:0 6px}
+  .general-extra-tool>summary>span{gap:7px}
+  .general-extra-tool>summary small{flex-basis:100%;padding-left:25px}
+}

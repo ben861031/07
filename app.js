@@ -27,6 +27,8 @@ const historyListPages={print:1,general:1,bulk:1};
 let excelImportWorkbook=null,excelImportRows=[],excelImportMapping={},excelImportBusy=false,excelImportCurrentSheet="";
 let outgoingSuffixPrompted=false;
 let outgoingCopiedDraft=false,outgoingSequenceSeed="";
+const draftBaselines=Object.create(null);
+const draftPageNames={registerPage:"收件登錄",generalOutgoingPage:"一般寄件登錄",outgoingPage:"大宗掛號寄件"};
 
 function $(id){return document.getElementById(id)}
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
@@ -39,6 +41,17 @@ function mailUserDisplayName(member,account,authUser){const department=String(me
 function blockUserAdminAction(){ if(canAdmin()) return false; alert("此功能僅限 Admin 使用"); return true; }
 function blockSharedMemberAction(){if(currentIsSystemAdmin)return false;alert("共用人員主檔僅限總系統管理員維護");return true}
 function mailLabel(r){return r.trackingNo||r.receiver||r.id||"郵件"}
+function formDraftSnapshot(pageId){
+  if(pageId==="registerPage")return JSON.stringify({date:$("receiveDate")?.value||"",mailId:$("mailId")?.value||"",rows:[...document.querySelectorAll("#incomingEntryRows tr")].map(row=>({id:row.dataset.id||"",...incomingRowValues(row)}))});
+  if(pageId==="generalOutgoingPage")return JSON.stringify({date:$("generalOutgoingDate")?.value||"",sender:$("generalOutgoingSender")?.value||"",suffix:$("generalPostalSuffix8")?.value||"",rows:generalOutgoingRawItems()});
+  if(pageId==="outgoingPage")return JSON.stringify({id:$("outgoingBatchId")?.value||"",date:$("outgoingDate")?.value||"",type:$("outgoingType")?.value||"",sender:$("outgoingSenderName")?.value||"",representative:$("outgoingRepresentative")?.value||"",address:$("outgoingSenderAddress")?.value||"",phone:$("outgoingSenderPhone")?.value||"",suffix:$("outgoingPostalSuffix8")?.value||"",rows:outgoingRawItems()});
+  return "";
+}
+function captureFormBaseline(pageId){draftBaselines[pageId]=formDraftSnapshot(pageId)}
+function hasUnsavedForm(pageId){return Object.hasOwn(draftBaselines,pageId)&&draftBaselines[pageId]!==formDraftSnapshot(pageId)}
+function confirmLeaveForm(pageId){return !hasUnsavedForm(pageId)||confirm(`「${draftPageNames[pageId]}」有未儲存的修改。切換後仍可返回繼續，但重新整理或登出會遺失。確定切換頁面？`)}
+function confirmReplaceForm(pageId){return !hasUnsavedForm(pageId)||confirm(`「${draftPageNames[pageId]}」有未儲存的修改。開啟其他紀錄會取代目前內容，確定繼續？`)}
+window.addEventListener("beforeunload",event=>{if(Object.keys(draftPageNames).some(hasUnsavedForm)){event.preventDefault();event.returnValue=""}});
 
 async function writeAuditLog({action,category,targetId="",targetLabel="",before=null,after=null}){try{await addDoc(collection(db,"mailAuditLogs"),{actorName:currentUser,actorEmail:currentUserEmail,actorRole:currentRole,action,category,targetId,targetLabel,before:compact(before),after:compact(after),createdAt:new Date()})}catch(e){console.error("audit fail",e)}}
 function compact(data){if(!data)return null;const out={};Object.entries(data).forEach(([k,v])=>{if(k==="id")return;if(v===null||["string","number","boolean"].includes(typeof v))out[k]=v});return out}
@@ -49,7 +62,7 @@ function toggleTopMenu(id){const group=$(id),opening=!group?.classList.contains(
 window.toggleTopMenu=toggleTopMenu;
 document.addEventListener("click",event=>{if(!event.target.closest(".top-menu-group"))closeTopMenus()});
 document.addEventListener("keydown",event=>{if(event.key==="Escape")closeTopMenus()});
-function showPage(pageId,el){const adminPages=["deptPage","mailTypePage","memberPage","permissionPage","auditLogPage","loginLogPage"];if(!$(pageId)||(!canAdmin()&&adminPages.includes(pageId))||(pageId==="memberPage"&&!currentIsSystemAdmin)){pageId="registerPage";el=document.querySelector('[onclick*=registerPage]')}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));$(pageId)?.classList.remove("hidden");document.querySelectorAll(".menu-item").forEach(i=>i.classList.remove("active"));if(el)el.classList.add("active");closeTopMenus();localStorage.setItem("mailLastPage",pageId);window.scrollTo({top:0,left:0,behavior:"auto"});if(pageId==="deptPage"){loadDepartments().catch(error=>{console.error("部門重新載入失敗",error);renderDepartmentMaintenanceError(error);});}if(pageId==="mailTypePage")loadMailTypes();if(pageId==="memberPage")loadMemberManagement(true).catch(error=>{console.error("人員重新載入失敗",error);const area=$("memberTableArea");if(area)area.innerHTML=`<div class="error-box">人員清單讀取失敗：${esc(error?.message||error)}</div>`});if(pageId==="permissionPage")loadUsers(true).catch(error=>{console.error("權限重新載入失敗",error);const area=$("userListArea");if(area)area.innerHTML=`<div class="error-box">權限清單讀取失敗：${esc(error?.message||error)}</div>`});if(window.lucide)lucide.createIcons();}
+function showPage(pageId,el){const adminPages=["deptPage","mailTypePage","memberPage","permissionPage","auditLogPage","loginLogPage"];if(!$(pageId)||(!canAdmin()&&adminPages.includes(pageId))||(pageId==="memberPage"&&!currentIsSystemAdmin)){pageId="registerPage";el=document.querySelector('[onclick*=registerPage]')}const current=document.querySelector(".page:not(.hidden)")?.id;if(current&&current!==pageId&&!confirmLeaveForm(current))return false;document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));$(pageId)?.classList.remove("hidden");document.querySelectorAll(".menu-item").forEach(i=>i.classList.remove("active"));if(el)el.classList.add("active");closeTopMenus();localStorage.setItem("mailLastPage",pageId);window.scrollTo({top:0,left:0,behavior:"auto"});if(pageId==="deptPage"){loadDepartments().catch(error=>{console.error("部門重新載入失敗",error);renderDepartmentMaintenanceError(error);});}if(pageId==="mailTypePage")loadMailTypes();if(pageId==="memberPage")loadMemberManagement(true).catch(error=>{console.error("人員重新載入失敗",error);const area=$("memberTableArea");if(area)area.innerHTML=`<div class="error-box">人員清單讀取失敗：${esc(error?.message||error)}</div>`});if(pageId==="permissionPage")loadUsers(true).catch(error=>{console.error("權限重新載入失敗",error);const area=$("userListArea");if(area)area.innerHTML=`<div class="error-box">權限清單讀取失敗：${esc(error?.message||error)}</div>`});if(window.lucide)lucide.createIcons();return true;}
 window.showPage=showPage;
 document.querySelectorAll(".menu-item").forEach(item=>{item.setAttribute("role","button");item.tabIndex=0;item.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();item.click()}})});
 function restoreLastPage(){const last=localStorage.getItem("mailLastPage")||"registerPage",page=$(last)?last:"registerPage";const menu=page==="sheetPage"?document.querySelector('[onclick*=openSheetPage]'):document.querySelector(`[onclick*="${page}"]`);showPage(page,menu||document.querySelector('[onclick*=registerPage]'))}
@@ -160,11 +173,11 @@ function incomingRowHtml(item={}, index=0){
   const deptHtml = `<option value="">請選擇</option>` + deptOpts;
   return `<tr class="outgoing-entry-row incoming-entry-row" data-id="${esc(item.id||'')}">
     <td class="incoming-seq" style="text-align:center">${index+1}</td>
-    <td><select data-field="mailType" style="width:100%;border:1px solid #dbe4f0;border-radius:8px;padding:8px;font-size:14px;background:#fff">${typeHtml}</select></td>
-    <td><input data-field="trackingNo" value="${esc(item.trackingNo||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
-    <td class="incoming-sender-cell"><div class="receiver-combobox"><input data-field="sender" value="${esc(item.sender||"")}" list="incomingSenderOptions" autocomplete="off" aria-label="寄件人或寄件單位，可輸入關鍵字或展開歷史名單"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史寄件人或寄件單位" onclick="openSenderSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div></td>
-    <td><select data-field="department" style="width:100%;border:1px solid #dbe4f0;border-radius:8px;padding:8px;font-size:14px;background:#fff">${deptHtml}</select></td>
-    <td class="incoming-receiver-cell"><div class="receiver-combobox"><input data-field="receiver" value="${esc(item.receiver||"")}" list="${receiverListId}" autocomplete="off" aria-label="收件人，可輸入姓名或展開近期收件人"><button type="button" class="receiver-combobox-toggle" aria-label="展開近期收件人" onclick="openReceiverSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><datalist id="${receiverListId}" class="receiver-suggestion-list"></datalist></div></td>
+    <td data-label="郵件類型"><select data-field="mailType" style="width:100%;border:1px solid #dbe4f0;border-radius:8px;padding:8px;font-size:14px;background:#fff">${typeHtml}</select></td>
+    <td data-label="掛號／單號"><input data-field="trackingNo" value="${esc(item.trackingNo||"")}" style="width:100%;padding:9px;border:1px solid #dbe4f0;border-radius:8px;"></td>
+    <td class="incoming-sender-cell" data-label="寄件人／寄件單位"><div class="receiver-combobox"><input data-field="sender" value="${esc(item.sender||"")}" list="incomingSenderOptions" autocomplete="off" aria-label="寄件人或寄件單位，可輸入關鍵字或展開歷史名單"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史寄件人或寄件單位" onclick="openSenderSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div></td>
+    <td data-label="收件部門"><select data-field="department" style="width:100%;border:1px solid #dbe4f0;border-radius:8px;padding:8px;font-size:14px;background:#fff">${deptHtml}</select></td>
+    <td class="incoming-receiver-cell" data-label="收件人"><div class="receiver-combobox"><input data-field="receiver" value="${esc(item.receiver||"")}" list="${receiverListId}" autocomplete="off" aria-label="收件人，可輸入姓名或展開近期收件人"><button type="button" class="receiver-combobox-toggle" aria-label="展開近期收件人" onclick="openReceiverSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><datalist id="${receiverListId}" class="receiver-suggestion-list"></datalist></div></td>
     <td class="incoming-row-actions"><input type="hidden" data-field="remark" value="${esc(item.remark||"")}">${item.id?'<span class="editing-row-note">編輯既有資料</span>':'<div class="row-action-group"><button type="button" class="btn btn-gray row-action-btn" title="複製上一列內容" onclick="copyPreviousIncomingRow(this)">複製</button><button type="button" class="btn btn-gray row-action-btn" title="在下方新增空白列" onclick="addBlankIncomingRow(this)">新增</button><button type="button" class="btn btn-red row-action-btn" title="刪除這一列" onclick="removeIncomingRow(this)">刪除</button></div>'}</td>
   </tr>`;
 }
@@ -265,6 +278,7 @@ function resetMailForm(){
   hideIncomingValidation();
   hideIncomingSaveStatus();
   renderIncomingRows([]);
+  captureFormBaseline("registerPage");
 } window.resetMailForm=resetMailForm;
 
 function hideIncomingValidation(){const box=$("incomingValidationMessage");box.hidden=true;box.textContent="";$("receiveDate").classList.remove("incoming-field-invalid");$("receiveDate").removeAttribute("aria-invalid")}
@@ -340,6 +354,7 @@ async function saveMailRecord(){
     hideIncomingValidation();
     $("receiveDate").value=date;
     renderIncomingRows([{mailType:last.mailType,department:last.department}]);
+    captureFormBaseline("registerPage");
     showIncomingSaveStatus(`已儲存：新增 ${added} 筆、更新 ${updated} 筆。可直接輸入下一筆。`);
     setIncomingSaving(false);
     $("incomingEntryRows").querySelector('[data-field="trackingNo"]')?.focus();
@@ -360,11 +375,12 @@ async function saveMailRecord(){
 function editMail(id){
   const r=mailRecords.find(x=>x.id===id);
   if(!r)return;
-  showPage("registerPage",document.querySelector('[onclick*=registerPage]'));
+  if(!confirmReplaceForm("registerPage")||!showPage("registerPage",document.querySelector('[onclick*=registerPage]')))return;
   hideIncomingValidation();
   hideIncomingSaveStatus();
   $("receiveDate").value=r.receiveDate||todayStr();
   renderIncomingRows([r]);
+  captureFormBaseline("registerPage");
 } window.editMail=editMail;
 async function deleteMail(id){const r=mailRecords.find(x=>x.id===id);if(!confirm("確定刪除此筆郵件資料？"))return;await deleteDoc(doc(db,"mailRecords",id));await writeAuditLog({action:"delete",category:"mailRecord",targetId:id,targetLabel:mailLabel(r),before:r});await loadMailRecords();}
 window.deleteMail=deleteMail;
@@ -381,23 +397,23 @@ function generalOutgoingRecordLabel(record){return record.trackingNo||record.rec
 function generalOutgoingTypeOptions(selected=""){return generalOutgoingTypes().map(type=>`<option value="${esc(type)}" ${type===selected?"selected":""}>${esc(type)}</option>`).join("")}
 function generalOutgoingRowHtml(item={},index=0){const type=item.mailType||"平信",addressListId=`outgoingAddressOptions${++outgoingSuggestionListSerial}`;return `<tr class="general-outgoing-entry-row" data-id="${esc(item.id||"")}">
   <td class="general-outgoing-seq">${index+1}</td>
-  <td><select data-field="mailType">${generalOutgoingTypeOptions(type)}</select></td>
-  <td><div class="receiver-combobox"><input data-field="receiverName" value="${esc(item.receiverName||"")}" list="outgoingRecipientOptions" autocomplete="off" placeholder="姓名或單位" aria-label="收件人或單位，可輸入關鍵字或展開寄件歷史名單"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史收件人或單位" onclick="openOutgoingSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div></td>
-  <td><div class="receiver-combobox"><input data-field="address" value="${esc(item.address||"")}" list="outgoingAddressOptions" autocomplete="off" placeholder="完整寄達地址" aria-label="寄達地址，可輸入關鍵字或展開歷史地址"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史寄達地址" onclick="openOutgoingSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><datalist id="${addressListId}" class="outgoing-address-suggestion-list"></datalist></div></td>
-  <td><input data-field="trackingNo" inputmode="numeric" maxlength="30" value="${esc(item.trackingNo||"")}" placeholder="完整 14／20 碼或前 6 碼"></td>
-  <td><input data-field="remark" value="${esc(item.remark||"")}" placeholder="選填"></td>
+  <td data-label="郵件種類"><select data-field="mailType">${generalOutgoingTypeOptions(type)}</select></td>
+  <td data-label="收件人／單位"><div class="receiver-combobox"><input data-field="receiverName" value="${esc(item.receiverName||"")}" list="outgoingRecipientOptions" autocomplete="off" placeholder="姓名或單位" aria-label="收件人或單位，可輸入關鍵字或展開寄件歷史名單"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史收件人或單位" onclick="openOutgoingSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div></td>
+  <td data-label="寄達地址"><div class="receiver-combobox"><input data-field="address" value="${esc(item.address||"")}" list="outgoingAddressOptions" autocomplete="off" placeholder="完整寄達地址" aria-label="寄達地址，可輸入關鍵字或展開歷史地址"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史寄達地址" onclick="openOutgoingSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><datalist id="${addressListId}" class="outgoing-address-suggestion-list"></datalist></div></td>
+  <td data-label="掛號號碼"><input data-field="trackingNo" inputmode="numeric" maxlength="30" value="${esc(item.trackingNo||"")}" placeholder="完整 14／20 碼或前 6 碼"></td>
+  <td data-label="備註"><input data-field="remark" value="${esc(item.remark||"")}" placeholder="選填"></td>
   <td class="incoming-row-actions"><div class="row-action-group"><button type="button" class="btn btn-gray row-action-btn" title="複製上一列內容" onclick="copyPreviousGeneralOutgoingRow(this)">複製</button><button type="button" class="btn btn-gray row-action-btn" title="在下方新增空白列" onclick="addBlankGeneralOutgoingRow(this)">新增</button><button type="button" class="btn btn-red row-action-btn" title="刪除這一列" onclick="removeGeneralOutgoingRow(this)">刪除</button></div></td>
 </tr>`}
 function generalOutgoingRowValues(row){const value=name=>row.querySelector(`[data-field="${name}"]`)?.value.trim()||"";return {id:row.dataset.id||"",mailType:value("mailType"),receiverName:value("receiverName"),address:value("address"),trackingNo:value("trackingNo"),remark:value("remark")}}
 function generalOutgoingRawItems(){return [...document.querySelectorAll(".general-outgoing-entry-row")].map(generalOutgoingRowValues)}
 function syncGeneralOutgoingTrackingInput(row){const type=row.querySelector('[data-field="mailType"]')?.value||"",input=row.querySelector('[data-field="trackingNo"]');if(!input)return;const required=requiresOutgoingTracking(type);input.placeholder=required?"完整 14／20 碼，可稍後補登":"有號碼請填完整 14／20 碼";row.classList.toggle("tracking-pending",required&&!resolveGeneralTrackingNumber(input.value,$("generalPostalSuffix8")?.value||"").number)}
-function refreshGeneralOutgoingRows(){const rows=[...document.querySelectorAll(".general-outgoing-entry-row")],suffix=$("generalPostalSuffix8")?.value||"";rows.forEach((row,index)=>{row.querySelector(".general-outgoing-seq").textContent=index+1;syncGeneralOutgoingTrackingInput(row)});const valid=rows.map(generalOutgoingRowValues).filter(item=>item.receiverName&&item.address).length,shorts=rows.map(generalOutgoingRowValues).filter(item=>item.receiverName&&item.address&&/^\d{6}$/.test(generalPostalDigits(item.trackingNo)));$("generalOutgoingItemCount").textContent=`有效資料 ${valid} 件`;const preview=$("generalTrackingPreview");if(preview)preview.textContent=shorts.length?(PostalTracking.validSuffix(generalPostalDigits(suffix))?`將補齊 ${shorts.length} 筆 14 碼；例如 ${generalPostalDigits(shorts[0].trackingNo)+generalPostalDigits(suffix)}。請核對執據。`:`有 ${shorts.length} 筆只填前 6 碼，請填同批後 8 碼，或直接輸入完整 14／20 碼。`):"";if(window.lucide)lucide.createIcons()}
+function refreshGeneralOutgoingRows(){const rows=[...document.querySelectorAll(".general-outgoing-entry-row")],suffix=$("generalPostalSuffix8")?.value||"";rows.forEach((row,index)=>{row.querySelector(".general-outgoing-seq").textContent=index+1;syncGeneralOutgoingTrackingInput(row)});const valid=rows.map(generalOutgoingRowValues).filter(item=>item.receiverName&&item.address).length,shorts=rows.map(generalOutgoingRowValues).filter(item=>item.receiverName&&item.address&&/^\d{6}$/.test(generalPostalDigits(item.trackingNo)));$("generalOutgoingItemCount").textContent=`有效資料 ${valid} 件`;const preview=$("generalTrackingPreview");if(preview)preview.textContent=shorts.length?(PostalTracking.validSuffix(generalPostalDigits(suffix))?`將補齊 ${shorts.length} 筆 14 碼；例如 ${generalPostalDigits(shorts[0].trackingNo)+generalPostalDigits(suffix)}。請核對執據。`:`有 ${shorts.length} 筆只填前 6 碼，請填同批後 8 碼，或直接輸入完整 14／20 碼。`):"";const tool=$("generalSuffixTool");if(tool){if(shorts.length&&!tool.dataset.autoOpened){tool.open=true;tool.dataset.autoOpened="true"}if(!shorts.length)delete tool.dataset.autoOpened}if(window.lucide)lucide.createIcons()}
 function useLatestGeneralPostalSuffix(){const latest=latestPostalSuffixBatch();if(!latest){alert("目前沒有已確認的大宗後 8 碼，請依郵局執據手動填寫。");return}$("generalPostalSuffix8").value=latest.postalSuffix8;refreshGeneralOutgoingRows()} window.useLatestGeneralPostalSuffix=useLatestGeneralPostalSuffix;
 function moveGeneralOutgoingCell(control,key){const row=control.closest(".general-outgoing-entry-row"),rows=[...document.querySelectorAll(".general-outgoing-entry-row")],fields=["mailType","receiverName","address","trackingNo","remark"],rowIndex=rows.indexOf(row),fieldIndex=fields.indexOf(control.dataset.field);if(rowIndex<0||fieldIndex<0)return;let nextRow=rowIndex,nextField=fieldIndex;if(key==="ArrowUp")nextRow--;if(key==="ArrowDown"||key==="Enter")nextRow++;if(key==="ArrowLeft")nextField--;if(key==="ArrowRight")nextField++;if(nextField<0){nextRow--;nextField=fields.length-1}if(nextField>=fields.length){nextRow++;nextField=0}if(nextRow>=rows.length){rows[rows.length-1].insertAdjacentHTML("afterend",generalOutgoingRowHtml({mailType:control.dataset.field==="mailType"?control.value:"平信"},rows.length));bindGeneralOutgoingGrid();rows=[...document.querySelectorAll(".general-outgoing-entry-row")]}if(nextRow<0||nextRow>=rows.length)return;const target=rows[nextRow].querySelector(`[data-field="${fields[nextField]}"]`);if(target){target.focus();if(target.select&&target.tagName!=="SELECT")target.select()}}
 function bindGeneralOutgoingGrid(){const body=$("generalOutgoingRows");if(!body)return;body.oninput=event=>{if(event.target.dataset.field==="receiverName")updateOutgoingRecipientSuggestions(event.target);if(event.target.dataset.field==="address"){delete event.target.dataset.suggestedFor;delete event.target.dataset.suggestedAddress}if(event.target.dataset.field==="trackingNo")syncGeneralOutgoingTrackingInput(event.target.closest("tr"));refreshGeneralOutgoingRows()};body.onchange=event=>{if(event.target.dataset.field==="mailType")syncGeneralOutgoingTrackingInput(event.target.closest("tr"));refreshGeneralOutgoingRows()};body.onkeydown=event=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(event.key)){event.preventDefault();moveGeneralOutgoingCell(event.target,event.key)}}}
 function renderGeneralOutgoingRows(items=[]){const rows=items.length?items:[{mailType:"平信"},{mailType:"平信"}];$("generalOutgoingRows").innerHTML=rows.map(generalOutgoingRowHtml).join("");bindGeneralOutgoingGrid();refreshAllOutgoingAddressSuggestions();refreshGeneralOutgoingRows()}
-function prepareGeneralOutgoingPage(){if(!$("generalOutgoingDate").value)$("generalOutgoingDate").value=todayStr();if(!$("generalOutgoingRows").children.length)renderGeneralOutgoingRows();if(!$("generalOutgoingSender").value)$("generalOutgoingSender").value=localStorage.getItem("outgoingSenderName")||"";renderGeneralOutgoingList()} window.prepareGeneralOutgoingPage=prepareGeneralOutgoingPage;
-function resetGeneralOutgoingForm(force=false){const hasInput=generalOutgoingRawItems().some(item=>item.receiverName||item.address||item.trackingNo||item.remark);if(!force&&hasInput&&!confirm("目前填寫的寄件資料將會清除，確定要清空重填嗎？"))return;$("generalOutgoingDate").value=todayStr();$("generalOutgoingSender").value=localStorage.getItem("outgoingSenderName")||"";$("generalPostalSuffix8").value="";renderGeneralOutgoingRows()} window.resetGeneralOutgoingForm=resetGeneralOutgoingForm;
+function prepareGeneralOutgoingPage(){if(!$("generalOutgoingDate").value)$("generalOutgoingDate").value=todayStr();if(!$("generalOutgoingRows").children.length)renderGeneralOutgoingRows();if(!$("generalOutgoingSender").value)$("generalOutgoingSender").value=localStorage.getItem("outgoingSenderName")||"";if(!Object.hasOwn(draftBaselines,"generalOutgoingPage"))captureFormBaseline("generalOutgoingPage");renderGeneralOutgoingList()} window.prepareGeneralOutgoingPage=prepareGeneralOutgoingPage;
+function resetGeneralOutgoingForm(force=false){const hasInput=generalOutgoingRawItems().some(item=>item.receiverName||item.address||item.trackingNo||item.remark);if(!force&&hasInput&&!confirm("目前填寫的寄件資料將會清除，確定要清空重填嗎？"))return;$("generalOutgoingDate").value=todayStr();$("generalOutgoingSender").value=localStorage.getItem("outgoingSenderName")||"";$("generalPostalSuffix8").value="";renderGeneralOutgoingRows();captureFormBaseline("generalOutgoingPage")} window.resetGeneralOutgoingForm=resetGeneralOutgoingForm;
 function copyPreviousGeneralOutgoingRow(button){const row=button.closest("tr"),rows=[...document.querySelectorAll(".general-outgoing-entry-row")],index=rows.indexOf(row);if(index<=0){alert("第一列沒有上一列可以複製");return}const values=generalOutgoingRowValues(rows[index-1]);Object.entries(values).forEach(([field,value])=>{if(field==="id")return;const control=row.querySelector(`[data-field="${field}"]`);if(control)control.value=value});row.dataset.id="";refreshOutgoingAddressSuggestions(row);refreshGeneralOutgoingRows();row.querySelector('[data-field="receiverName"]').focus()} window.copyPreviousGeneralOutgoingRow=copyPreviousGeneralOutgoingRow;
 function addBlankGeneralOutgoingRow(button){const row=button.closest("tr"),index=[...document.querySelectorAll(".general-outgoing-entry-row")].indexOf(row);row.insertAdjacentHTML("afterend",generalOutgoingRowHtml({mailType:"平信"},index+1));bindGeneralOutgoingGrid();refreshGeneralOutgoingRows();row.nextElementSibling.querySelector('[data-field="mailType"]').focus()} window.addBlankGeneralOutgoingRow=addBlankGeneralOutgoingRow;
 function removeGeneralOutgoingRow(button){const row=button.closest("tr"),rows=[...document.querySelectorAll(".general-outgoing-entry-row")];if(rows.length===1){renderGeneralOutgoingRows();return}row.remove();refreshGeneralOutgoingRows()} window.removeGeneralOutgoingRow=removeGeneralOutgoingRow;
@@ -438,7 +454,7 @@ async function saveGeneralOutgoingRecords(){
     alert(`儲存成功！共新增 ${added} 筆，更新 ${updated} 筆一般寄件。`);
   }catch(error){console.error(error);alert("儲存失敗：" + (error?.message||error))}
 } window.saveGeneralOutgoingRecords=saveGeneralOutgoingRecords;
-function editGeneralOutgoingRecord(id,focusTracking=false){const record=generalOutgoingRecords.find(item=>item.id===id);if(!record)return;showPage("generalOutgoingPage",document.querySelector('[onclick*=generalOutgoingPage]'));$("generalOutgoingDate").value=record.sendDate||todayStr();$("generalOutgoingSender").value=record.senderName||"";$("generalPostalSuffix8").value="";renderGeneralOutgoingRows([record]);if(focusTracking)requestAnimationFrame(()=>{const input=$("generalOutgoingRows").querySelector('[data-field="trackingNo"]');input?.focus();input?.select()})} window.editGeneralOutgoingRecord=editGeneralOutgoingRecord;
+function editGeneralOutgoingRecord(id,focusTracking=false){const record=generalOutgoingRecords.find(item=>item.id===id);if(!record||!confirmReplaceForm("generalOutgoingPage")||!showPage("generalOutgoingPage",document.querySelector('[onclick*=generalOutgoingPage]')))return;$("generalOutgoingDate").value=record.sendDate||todayStr();$("generalOutgoingSender").value=record.senderName||"";$("generalPostalSuffix8").value="";renderGeneralOutgoingRows([record]);captureFormBaseline("generalOutgoingPage");if(focusTracking)requestAnimationFrame(()=>{const input=$("generalOutgoingRows").querySelector('[data-field="trackingNo"]');input?.focus();input?.select()})} window.editGeneralOutgoingRecord=editGeneralOutgoingRecord;
 async function deleteGeneralOutgoingRecord(id){const record=generalOutgoingRecords.find(item=>item.id===id);if(!record||!confirm(`確定刪除寄給「${record.receiverName||""}」的寄件紀錄？`))return;await deleteDoc(doc(db,"outgoingMailBatches",id));await writeAuditLog({action:"delete",category:"outgoingMailRecord",targetId:id,targetLabel:generalOutgoingRecordLabel(record),before:record});await loadOutgoingBatches()} window.deleteGeneralOutgoingRecord=deleteGeneralOutgoingRecord;
 function updateHistorySelect(id,values,allLabel){
   const select=$(id);if(!select)return;
@@ -482,7 +498,7 @@ function renderGeneralOutgoingList(){
   }).join(""):`<p class="page-desc">沒有符合篩選條件的一般寄件紀錄。</p>`;
   if(window.lucide)lucide.createIcons();
 }
-function openOutgoingHistory(){showPage("historyPage",document.querySelector('[onclick*=historyPage]'));$("directionFilter").value="outgoing";$("outgoingSourceFilter").value="general";currentPage=1;renderMailTable()} window.openOutgoingHistory=openOutgoingHistory;
+function openOutgoingHistory(){if(!showPage("historyPage",document.querySelector('[onclick*=historyPage]')))return;$("directionFilter").value="outgoing";$("outgoingSourceFilter").value="general";currentPage=1;renderMailTable()} window.openOutgoingHistory=openOutgoingHistory;
 
 function excelImportMatrix(sheetName){
   const sheet=excelImportWorkbook?.Sheets[sheetName];
@@ -707,7 +723,7 @@ function statsCountBy(rows,key){const counts=new Map();rows.forEach(row=>{const 
 function statsBars(rows,total,emptyText){if(!rows.length)return `<p class="stats-empty">${esc(emptyText)}</p>`;const max=rows[0][1];return rows.map(([name,count],index)=>`<div class="stats-rank-row"><span class="stats-rank-order">${index+1}</span><div class="stats-rank-main"><div class="stats-rank-info"><strong>${esc(name)}</strong><span>${count} 件 <small>(${Math.round(count/total*100)}%)</small></span></div><div class="stats-rank-track"><span style="width:${Math.max(4,Math.round(count/max*100))}%"></span></div></div></div>`).join("")}
 function renderDashboard(){const period=statsPeriod(),within=date=>String(date||"").startsWith(period),incoming=mailRecords.filter(record=>within(record.receiveDate)),general=generalOutgoingRecords.filter(record=>within(record.sendDate)),bulk=outgoingBatches.flatMap(batch=>within(batch.sendDate)?(Array.isArray(batch.items)?batch.items:[]).map(item=>({...item,mailType:item.mailType||batch.mailType})):[]),outgoing=[...general,...bulk];$("statsPeriodLabel").textContent=statsMode==="year"?`${period} 年統計`:`${period.replace("-"," 年 ")} 月統計`;$("statsIncomingCount").textContent=incoming.length;$("statsOutgoingCount").textContent=outgoing.length;$("statsGeneralCount").textContent=general.length;$("statsBulkCount").textContent=bulk.length;$("statsTodayIncoming").textContent=`${mailRecords.filter(record=>record.receiveDate===statsToday()).length} 件`;$("statsPendingPrint").textContent=`${mailRecords.filter(record=>!record.printed).length} 件`;const departments=statsCountBy(incoming,"department");$("statsDepartmentCount").textContent=`${departments.length} 個部門`;$("statsDepartmentRanking").innerHTML=statsBars(departments,incoming.length,"此期間沒有收件資料");$("statsIncomingTypes").innerHTML=statsBars(statsCountBy(incoming,"mailType"),incoming.length,"此期間沒有收件資料");$("statsOutgoingTypes").innerHTML=statsBars(statsCountBy(outgoing,"mailType"),outgoing.length,"此期間沒有寄件資料")}
 window.renderDashboard=renderDashboard;
-function openPendingPrint(){const menu=document.querySelector('[onclick*=openSheetPage]');showPage("sheetPage",menu);setSheetMode("normal");clearSheetPreview();$("sheetOnlyUnprinted").checked=true;$("sheetDate").value="";renderSheetPage()} window.openPendingPrint=openPendingPrint;
+function openPendingPrint(){const menu=document.querySelector('[onclick*=openSheetPage]');if(!showPage("sheetPage",menu))return;setSheetMode("normal");clearSheetPreview();$("sheetOnlyUnprinted").checked=true;$("sheetDate").value="";renderSheetPage()} window.openPendingPrint=openPendingPrint;
 function groupCount(list,key){const m={};list.forEach(r=>{const k=r[key]||"未分類";m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function renderSummary(id,rows){$(id).innerHTML=rows.length?rows.map(([k,v])=>`<div class="summary-item"><strong>${esc(k)}</strong><span>${v} 件</span></div>`).join(""):`<div class="summary-item"><strong>目前無資料</strong><span>0 件</span></div>`}
 
@@ -749,8 +765,8 @@ function printSnapshotOf(record){return {receiveDate:record.receiveDate||"",mail
 function originalPrintRecord(record){return record.printSnapshot?{...record,...record.printSnapshot,id:record.id}:record}
 function setSheetMode(mode,{batchNo="",label=""}={}){sheetMode=mode;activeReprintBatchNo=batchNo;activeReprintLabel=label;const notice=$("sheetModeNotice"),markButton=$("markSheetPrintedButton");if(mode==="reprint"){notice.hidden=false;notice.innerHTML=`<strong>補印模式</strong><span>${esc(label||"已列印郵件")}；不會變更首次列印時間與列印人員。</span>`;markButton.hidden=true}else{notice.hidden=true;notice.innerHTML="";markButton.hidden=false}}
 function clearSheetPreview(){selectedSheetRecords=[];const preview=$("signSheetPreview");preview.classList.add("empty-preview");preview.innerHTML="請先勾選部門並產生簽收單。"}
-function openSheetPage(menu){showPage("sheetPage",menu);setSheetMode("normal");clearSheetPreview();renderSheetPage()} window.openSheetPage=openSheetPage;
-function prepareReprint(records,{batchNo="",label=""}={}){if(!records.length){alert("找不到可補印的郵件資料");return}const dates=[...new Set(records.map(r=>(r.printSnapshot?.receiveDate||r.receiveDate||"")).filter(Boolean))];if(dates.length!==1){alert("補印資料包含不同收件日期，無法合併在同一張簽收單。請先依日期篩選後再選取。");return}const menu=document.querySelector('[onclick*=openSheetPage]');showPage("sheetPage",menu);$("sheetDate").value=dates[0];$("sheetOnlyUnprinted").checked=false;renderSheetPage();selectedSheetRecords=records.map(originalPrintRecord).sort((a,b)=>(getTime(a.createdTime)||0)-(getTime(b.createdTime)||0));setSheetMode("reprint",{batchNo,label});const preview=$("signSheetPreview");preview.classList.remove("empty-preview");preview.innerHTML=buildSignSheetHtml(selectedSheetRecords,dates[0]);preview.scrollIntoView({behavior:"smooth",block:"start"});if(window.lucide)lucide.createIcons()}
+function openSheetPage(menu){if(!showPage("sheetPage",menu))return;setSheetMode("normal");clearSheetPreview();renderSheetPage()} window.openSheetPage=openSheetPage;
+function prepareReprint(records,{batchNo="",label=""}={}){if(!records.length){alert("找不到可補印的郵件資料");return}const dates=[...new Set(records.map(r=>(r.printSnapshot?.receiveDate||r.receiveDate||"")).filter(Boolean))];if(dates.length!==1){alert("補印資料包含不同收件日期，無法合併在同一張簽收單。請先依日期篩選後再選取。");return}const menu=document.querySelector('[onclick*=openSheetPage]');if(!showPage("sheetPage",menu))return;$("sheetDate").value=dates[0];$("sheetOnlyUnprinted").checked=false;renderSheetPage();selectedSheetRecords=records.map(originalPrintRecord).sort((a,b)=>(getTime(a.createdTime)||0)-(getTime(b.createdTime)||0));setSheetMode("reprint",{batchNo,label});const preview=$("signSheetPreview");preview.classList.remove("empty-preview");preview.innerHTML=buildSignSheetHtml(selectedSheetRecords,dates[0]);preview.scrollIntoView({behavior:"smooth",block:"start"});if(window.lucide)lucide.createIcons()}
 function renderSheetPage(){if(!$("sheetDeptList"))return;if(!$("sheetDate").value)$("sheetDate").value=todayStr();const date=$("sheetDate").value,only=$("sheetOnlyUnprinted").checked,allRows=mailRecords.filter(r=>!date||r.receiveDate===date),pendingRows=allRows.filter(r=>!r.printed),rows=only?pendingRows:allRows,grouped=groupCount(rows,"department");if($("sheetPendingCount"))$("sheetPendingCount").textContent=`${pendingRows.length} 件`;if($("sheetAllCount"))$("sheetAllCount").textContent=`${allRows.length} 件`;document.querySelectorAll('input[name="sheetScope"]').forEach(input=>input.checked=input.value===(only?"unprinted":"all"));$("sheetDeptList").innerHTML=grouped.length?grouped.map(([dept,count])=>`<label class="dept-check-card"><div><strong>${esc(dept)}</strong><br><span>${count} 件郵件</span></div><input type="checkbox" class="sheet-dept-check" value="${esc(dept)}" onchange="updateSheetGenerateButton()"></label>`).join(""):`<div class="sheet-empty-state"><i data-lucide="inbox"></i><div><strong>${only?'此日期沒有待列印郵件':'此日期沒有郵件資料'}</strong><span>${only&&allRows.length?'可選擇上方「全部郵件」查看已列印資料。':'請更換收件日期後再試一次。'}</span></div><b>0 件</b></div>`;updateSheetGenerateButton();clearSheetPreview();renderPrintBatchHistory();if(window.lucide)lucide.createIcons()}
 window.renderSheetPage=renderSheetPage;
 function setSheetScope(value){$("sheetOnlyUnprinted").checked=value!=="all";renderSheetPage()} window.setSheetScope=setSheetScope;
@@ -820,13 +836,64 @@ function prepareOutgoingPage(){renderOutgoingSenderProfiles();if(!$("outgoingDat
 window.prepareOutgoingPage=prepareOutgoingPage;
 function startNewOutgoingForm(){const hasInput=outgoingRawItems().some(item=>item.trackingNo||item.receiverName||item.address||item.weight||item.postage||item.contents);if(hasInput&&!confirm("目前填寫的寄件明細將會清除，確定要清空重填嗎？"))return;resetOutgoingForm();openOutgoingSuffixDialog()} window.startNewOutgoingForm=startNewOutgoingForm;
 function renderOutgoingRows(items=[]){const rows=items.slice(0,20);while(rows.length<20)rows.push({});$("outgoingEntryRows").innerHTML=rows.map(outgoingRowHtml).join("");bindOutgoingGrid();refreshAllOutgoingAddressSuggestions();refreshOutgoingRows()}
-function resetOutgoingForm(){["outgoingBatchId","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone","outgoingPostalSuffix8"].forEach(id=>$(id).value="");$("outgoingDate").value=todayStr();$("outgoingType").value="掛號函件";$("outgoingSenderName").value=localStorage.getItem("outgoingSenderName")||"";$("outgoingRepresentative").value=localStorage.getItem("outgoingRepresentative")||"";$("outgoingSenderAddress").value=localStorage.getItem("outgoingSenderAddress")||"";$("outgoingSenderPhone").value=localStorage.getItem("outgoingSenderPhone")||"";outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;outgoingSuffixPrompted=false;updateOutgoingSuffixStatus();renderOutgoingRows()} window.resetOutgoingForm=resetOutgoingForm;
+function resetOutgoingForm(){["outgoingBatchId","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone","outgoingPostalSuffix8"].forEach(id=>$(id).value="");$("outgoingDate").value=todayStr();$("outgoingType").value="掛號函件";$("outgoingSenderName").value=localStorage.getItem("outgoingSenderName")||"";$("outgoingRepresentative").value=localStorage.getItem("outgoingRepresentative")||"";$("outgoingSenderAddress").value=localStorage.getItem("outgoingSenderAddress")||"";$("outgoingSenderPhone").value=localStorage.getItem("outgoingSenderPhone")||"";outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;outgoingSuffixPrompted=false;updateOutgoingSuffixStatus();renderOutgoingRows();captureFormBaseline("outgoingPage");setOutgoingSaveStatus("")} window.resetOutgoingForm=resetOutgoingForm;
 function outgoingFormData(){return {sendDate:$("outgoingDate").value,mailType:$("outgoingType").value,senderName:$("outgoingSenderName").value.trim(),representative:$("outgoingRepresentative").value.trim(),senderAddress:$("outgoingSenderAddress").value.trim(),senderPhone:$("outgoingSenderPhone").value.trim(),postalSuffix8:$("outgoingPostalSuffix8").value,items:getOutgoingItems()}}
 function validateOutgoing(data){if(!data.sendDate||!data.senderName){alert("請填寫交寄日期與公司名稱");return false}const incomplete=outgoingRawItems().filter(item=>Boolean(item.receiverName)!==Boolean(item.address));if(incomplete.length&&!confirm(`第 ${incomplete.map(item=>item.row).join("、")} 列只填寫了收件人或寄達地名，這些列不會建檔。是否繼續？`))return false;if(!data.items.length){alert("請至少完整填寫一筆收件人姓名與寄達地名");return false}if(!/^\d{6}$/.test(data.items[0].trackingNo)){alert("第一筆有效資料的掛號編號須為 6 碼");return false}if(!$("outgoingBatchId").value&&data.items.some(item=>!/^\d{6}$/.test(item.trackingNo))){alert("新批次掛號編號未能完成六碼連號，請檢查首碼是否接近 999999");return false}const bad=data.items.find(item=>item.trackingNo&&!/^\d{6}$/.test(item.trackingNo));if(bad){alert("大宗掛號編號請填前 6 碼；完整碼請使用後 8 碼或進階欄位");return false}if(data.postalSuffix8&&!PostalTracking.validSuffix(data.postalSuffix8)){alert("郵局查詢後 8 碼格式錯誤");return false}const badOverride=data.items.find(item=>item.postalTrackingNo&&(!PostalTracking.validFull(item.postalTrackingNo)||!item.postalTrackingNo.startsWith(item.trackingNo)));if(badOverride){alert("個別完整碼須為 14 或 20 碼，且前 6 碼與該列相同");return false}return true}
 function makeOutgoingBatchNo(data){return `OUT-${data.sendDate.replaceAll("-","")}-${data.items[0].trackingNo}`}
-async function saveOutgoingBatch(){const id=$("outgoingBatchId").value,data=outgoingFormData();if(!validateOutgoing(data))return;["outgoingSenderName","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone"].forEach(id=>localStorage.setItem(id,$(id).value.trim()));try{if(id){const before=outgoingBatches.find(b=>b.id===id);await updateDoc(doc(db,"outgoingMailBatches",id),{...data,updatedTime:new Date(),updatedBy:currentUser});await writeAuditLog({action:"update",category:"outgoingMailBatch",targetId:id,targetLabel:before?.batchNo||id,before,after:data})}else{const batchNo=makeOutgoingBatchNo(data);if(outgoingBatches.some(batch=>batch.batchNo===batchNo)){alert(`寄件紀錄編號 ${batchNo} 已存在，請確認交寄日期或第一筆掛號號碼`);return}const ref=await addDoc(collection(db,"outgoingMailBatches"),{...data,batchNo,createdTime:new Date(),createdBy:currentUser,createdByEmail:currentUserEmail});$("outgoingBatchId").value=ref.id;await writeAuditLog({action:"create",category:"outgoingMailBatch",targetId:ref.id,targetLabel:batchNo,after:{...data,batchNo,itemCount:data.items.length}})}await loadOutgoingBatches();if(!id){outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;refreshOutgoingRows()}alert(id?"寄件資料已更新":"寄件資料已儲存")}catch(error){console.error(error);alert("儲存失敗：" + (error?.message||error))}} window.saveOutgoingBatch=saveOutgoingBatch;
-function editOutgoingBatch(id){const batch=outgoingBatches.find(b=>b.id===id);if(!batch)return;showPage("outgoingPage",document.querySelector('[onclick*=outgoingPage]'));$("outgoingBatchId").value=batch.id;$("outgoingDate").value=batch.sendDate||todayStr();$("outgoingType").value=batch.mailType||"掛號函件";$("outgoingSenderName").value=batch.senderName||"";$("outgoingRepresentative").value=batch.representative||"";$("outgoingSenderAddress").value=batch.senderAddress||"";$("outgoingSenderPhone").value=batch.senderPhone||"";$("outgoingPostalSuffix8").value=batch.postalSuffix8||"";outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;outgoingSuffixPrompted=true;updateOutgoingSuffixStatus();renderOutgoingRows(batch.items||[])} window.editOutgoingBatch=editOutgoingBatch;
-function copyOutgoingBatchRoster(id){const batch=outgoingBatches.find(item=>item.id===id);if(!batch||!batch.items?.length){alert("此批次沒有可複製的名單");return}const filled=outgoingRawItems().some(item=>item.receiverName||item.address||item.trackingNo||item.contents);if(filled&&!confirm("目前表單內容將被所選批次的名單取代，尚未儲存的修改會消失。要繼續嗎？"))return;showPage("outgoingPage",document.querySelector('[onclick*=outgoingPage]'));$("outgoingBatchId").value="";$("outgoingDate").value=todayStr();$("outgoingType").value=batch.mailType||"掛號函件";$("outgoingSenderName").value=batch.senderName||"";$("outgoingRepresentative").value=batch.representative||"";$("outgoingSenderAddress").value=batch.senderAddress||"";$("outgoingSenderPhone").value=batch.senderPhone||"";$("outgoingPostalSuffix8").value="";outgoingCopiedDraft=true;outgoingSequenceSeed="";outgoingSuffixPrompted=true;renderOutgoingSenderProfiles("");updateOutgoingSuffixStatus();renderOutgoingRows(batch.items.map(item=>({...item,trackingNo:"",postalTrackingNo:""})));const notice=$("outgoingCopyNotice");notice.textContent=`已複製 ${formatDate(batch.sendDate)} 的 ${batch.items.length} 筆名單；舊掛號編號與郵局查詢後 8 碼未帶入。可上移、下移或刪除，再輸入新首碼自動連號。`;notice.hidden=false;openOutgoingSuffixDialog()} window.copyOutgoingBatchRoster=copyOutgoingBatchRoster;
+function setOutgoingSaveStatus(message,warning=false){const box=$("outgoingSaveStatus");if(!box)return;box.textContent=message;box.hidden=!message;box.classList.toggle("is-warning",warning)}
+let outgoingSaveInProgress=false;
+async function saveOutgoingBatch({silent=false}={}){
+  if(outgoingSaveInProgress)return false;
+  const id=$("outgoingBatchId").value,data=outgoingFormData();
+  if(!validateOutgoing(data))return false;
+  outgoingSaveInProgress=true;
+  $("saveOutgoingOnlyButton").disabled=true;
+  $("saveAndDownloadOutgoingButton").disabled=true;
+  try{["outgoingSenderName","outgoingRepresentative","outgoingSenderAddress","outgoingSenderPhone"].forEach(key=>localStorage.setItem(key,$(key).value.trim()))}catch(error){console.warn("寄件人本機預設值無法更新",error)}
+  setOutgoingSaveStatus("");
+  try{
+    try{
+      if(id){
+        const before=outgoingBatches.find(batch=>batch.id===id);
+        await updateDoc(doc(db,"outgoingMailBatches",id),{...data,updatedTime:new Date(),updatedBy:currentUser});
+        await writeAuditLog({action:"update",category:"outgoingMailBatch",targetId:id,targetLabel:before?.batchNo||id,before,after:data});
+      }else{
+        const batchNo=makeOutgoingBatchNo(data);
+        if(outgoingBatches.some(batch=>batch.batchNo===batchNo)){alert(`寄件紀錄編號 ${batchNo} 已存在，請確認交寄日期或第一筆掛號號碼`);return false}
+        const ref=await addDoc(collection(db,"outgoingMailBatches"),{...data,batchNo,createdTime:new Date(),createdBy:currentUser,createdByEmail:currentUserEmail});
+        $("outgoingBatchId").value=ref.id;
+        await writeAuditLog({action:"create",category:"outgoingMailBatch",targetId:ref.id,targetLabel:batchNo,after:{...data,batchNo,itemCount:data.items.length}});
+      }
+    }catch(error){console.error(error);alert("儲存失敗："+(error?.message||error));return false}
+    if(!id){outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;refreshOutgoingRows()}
+    captureFormBaseline("outgoingPage");
+    try{await loadOutgoingBatches()}catch(error){console.error("大宗清單重新載入失敗",error);setOutgoingSaveStatus("資料已儲存，但清單更新失敗；請稍後重新整理確認。",true)}
+    if(!silent){if(!$("outgoingSaveStatus").hidden)alert("資料已儲存，但清單暫時無法更新。");else alert(id?"寄件資料已更新":"寄件資料已儲存")}
+    return true;
+  }finally{
+    outgoingSaveInProgress=false;
+    $("saveOutgoingOnlyButton").disabled=false;
+    if(!outgoingSaveAndDownloadBusy)$("saveAndDownloadOutgoingButton").disabled=false;
+  }
+} window.saveOutgoingBatch=saveOutgoingBatch;
+function editOutgoingBatch(id){const batch=outgoingBatches.find(b=>b.id===id);if(!batch||!confirmReplaceForm("outgoingPage")||!showPage("outgoingPage",document.querySelector('[onclick*=outgoingPage]')))return;$("outgoingBatchId").value=batch.id;$("outgoingDate").value=batch.sendDate||todayStr();$("outgoingType").value=batch.mailType||"掛號函件";$("outgoingSenderName").value=batch.senderName||"";$("outgoingRepresentative").value=batch.representative||"";$("outgoingSenderAddress").value=batch.senderAddress||"";$("outgoingSenderPhone").value=batch.senderPhone||"";$("outgoingPostalSuffix8").value=batch.postalSuffix8||"";outgoingCopiedDraft=false;outgoingSequenceSeed="";$("outgoingCopyNotice").hidden=true;outgoingSuffixPrompted=true;updateOutgoingSuffixStatus();renderOutgoingRows(batch.items||[]);captureFormBaseline("outgoingPage");setOutgoingSaveStatus("")} window.editOutgoingBatch=editOutgoingBatch;
+function copyOutgoingBatchRoster(id){
+  const batch=outgoingBatches.find(item=>item.id===id);
+  if(!batch||!batch.items?.length){alert("此批次沒有可複製的名單");return}
+  if(hasUnsavedForm("outgoingPage")&&!confirmReplaceForm("outgoingPage"))return;
+  if(!showPage("outgoingPage",document.querySelector('[onclick*=outgoingPage]')))return;
+  $("outgoingBatchId").value="";$("outgoingDate").value=todayStr();$("outgoingType").value=batch.mailType||"掛號函件";
+  $("outgoingSenderName").value=batch.senderName||"";$("outgoingRepresentative").value=batch.representative||"";
+  $("outgoingSenderAddress").value=batch.senderAddress||"";$("outgoingSenderPhone").value=batch.senderPhone||"";
+  $("outgoingPostalSuffix8").value="";outgoingCopiedDraft=true;outgoingSequenceSeed="";outgoingSuffixPrompted=true;
+  renderOutgoingSenderProfiles("");updateOutgoingSuffixStatus();
+  renderOutgoingRows(batch.items.map(item=>({...item,trackingNo:"",postalTrackingNo:""})));
+  const notice=$("outgoingCopyNotice");
+  notice.textContent=`已複製 ${formatDate(batch.sendDate)} 的 ${batch.items.length} 筆名單；舊掛號編號與郵局查詢後 8 碼未帶入。可上移、下移或刪除，再輸入新首碼自動連號。`;
+  notice.hidden=false;
+  setOutgoingSaveStatus("");
+  openOutgoingSuffixDialog();
+} window.copyOutgoingBatchRoster=copyOutgoingBatchRoster;
 async function deleteOutgoingBatch(id){const batch=outgoingBatches.find(b=>b.id===id);if(!confirm(`確定刪除寄件批次 ${batch?.batchNo||""}？`))return;await deleteDoc(doc(db,"outgoingMailBatches",id));await writeAuditLog({action:"delete",category:"outgoingMailBatch",targetId:id,targetLabel:batch?.batchNo||id,before:batch});if($("outgoingBatchId").value===id)resetOutgoingForm();await loadOutgoingBatches()} window.deleteOutgoingBatch=deleteOutgoingBatch;
 function renderOutgoingBatchList(){
   const area=$("outgoingBatchList");if(!area)return;
@@ -861,7 +928,48 @@ function setExcelCellText(xmlDoc,ref,value){const cell=getExcelCell(xmlDoc,ref);
 function setExcelCellNumber(xmlDoc,ref,value){const cell=getExcelCell(xmlDoc,ref);if(!cell)throw new Error(`Excel 範本缺少儲存格 ${ref}`);clearExcelCellValue(cell);cell.removeAttribute("t");const node=xmlDoc.createElementNS(EXCEL_NS,"v");node.textContent=String(value);cell.appendChild(node)}
 function fillOutgoingExcelSheet(xmlText,data){const xmlDoc=new DOMParser().parseFromString(xmlText,"application/xml");if(xmlDoc.getElementsByTagName("parsererror").length)throw new Error("Excel 工作表 XML 解析失敗");const [year,month,day]=data.sendDate.split("-").map(Number),rocYear=year-1911;[["D3",rocYear],["G3",month],["J3",day],["D41",rocYear],["G41",month],["J41",day]].forEach(([ref,value])=>setExcelCellNumber(xmlDoc,ref,value));[["H5",data.senderName],["E6",data.representative],["R6",data.senderAddress],["AH6",data.senderPhone],["H43",data.senderName],["E44",data.representative],["R44",data.senderAddress],["AH44",data.senderPhone]].forEach(([ref,value])=>setExcelCellText(xmlDoc,ref,value));for(let index=0;index<20;index++){const item=data.items[index]||{};for(const row of [10+index,48+index]){setExcelCellText(xmlDoc,`C${row}`,item.trackingNo||"");setExcelCellText(xmlDoc,`H${row}`,item.receiverName||"");setExcelCellText(xmlDoc,`O${row}`,item.address||"");setExcelCellText(xmlDoc,`AC${row}`,item.returnReceipt?"ˇ":"");setExcelCellText(xmlDoc,`AE${row}`,"");setExcelCellText(xmlDoc,`AG${row}`,item.printedMatter?"ˇ":"");setExcelCellText(xmlDoc,`AI${row}`,item.weight||"");setExcelCellText(xmlDoc,`AL${row}`,item.postage||"");setExcelCellText(xmlDoc,`AO${row}`,item.contents||"")}}return new XMLSerializer().serializeToString(xmlDoc)}
 async function removeExcelCalcChain(zip){const relPath="xl/_rels/workbook.xml.rels",typePath="[Content_Types].xml",relsFile=zip.file(relPath),typesFile=zip.file(typePath);if(relsFile){const rels=new DOMParser().parseFromString(await relsFile.async("string"),"application/xml");[...rels.documentElement.children].filter(node=>(node.getAttribute("Type")||"").endsWith("/calcChain")).forEach(node=>node.remove());zip.file(relPath,new XMLSerializer().serializeToString(rels))}if(typesFile){const types=new DOMParser().parseFromString(await typesFile.async("string"),"application/xml");[...types.documentElement.children].filter(node=>node.getAttribute("PartName")==="/xl/calcChain.xml").forEach(node=>node.remove());zip.file(typePath,new XMLSerializer().serializeToString(types))}zip.remove("xl/calcChain.xml")}
-async function downloadOutgoingExcel(){const data=outgoingFormData();if(!validateOutgoing(data))return;if(!window.JSZip){alert("Excel 套表元件尚未載入，請確認網路連線後重新整理");return}try{const templateUrl=`./交寄大宗限時掛號及掛號函件執據存根_原始範本.xlsx?refresh=${Date.now()}`,response=await fetch(templateUrl,{cache:"no-store"});if(!response.ok)throw new Error(`無法讀取 Excel 範本（${response.status}）`);const zip=await JSZip.loadAsync(await response.arrayBuffer());for(const sheetPath of ["xl/worksheets/sheet2.xml","xl/worksheets/sheet3.xml","xl/worksheets/sheet4.xml"]){const sheet=zip.file(sheetPath);if(!sheet)throw new Error(`Excel 範本缺少 ${sheetPath}`);zip.file(sheetPath,fillOutgoingExcelSheet(await sheet.async("string"),data))}await removeExcelCalcChain(zip);const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",compression:"DEFLATE"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`大宗掛號執據_${data.sendDate}_${data.items[0].trackingNo}.xlsx`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(error){console.error(error);alert("產生原版 Excel 失敗：" + (error?.message||error))}} window.downloadOutgoingExcel=downloadOutgoingExcel;
+async function downloadOutgoingExcel({skipValidation=false}={}){
+  const data=outgoingFormData();
+  if(!skipValidation&&!validateOutgoing(data))return false;
+  if(!window.JSZip){alert("Excel 套表元件尚未載入，請確認網路連線後重新整理");return false}
+  try{
+    const templateUrl=`./交寄大宗限時掛號及掛號函件執據存根_原始範本.xlsx?refresh=${Date.now()}`;
+    const response=await fetch(templateUrl,{cache:"no-store"});
+    if(!response.ok)throw new Error(`無法讀取 Excel 範本（${response.status}）`);
+    const zip=await JSZip.loadAsync(await response.arrayBuffer());
+    for(const sheetPath of ["xl/worksheets/sheet2.xml","xl/worksheets/sheet3.xml","xl/worksheets/sheet4.xml"]){
+      const sheet=zip.file(sheetPath);
+      if(!sheet)throw new Error(`Excel 範本缺少 ${sheetPath}`);
+      zip.file(sheetPath,fillOutgoingExcelSheet(await sheet.async("string"),data));
+    }
+    await removeExcelCalcChain(zip);
+    const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",compression:"DEFLATE"});
+    const url=URL.createObjectURL(blob),link=document.createElement("a");
+    link.href=url;
+    link.download=`大宗掛號執據_${data.sendDate}_${data.items[0].trackingNo}.xlsx`;
+    document.body.appendChild(link);
+    link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    return true;
+  }catch(error){console.error(error);alert("產生原版 Excel 失敗："+(error?.message||error));return false}
+} window.downloadOutgoingExcel=downloadOutgoingExcel;
+let outgoingSaveAndDownloadBusy=false;
+async function saveAndDownloadOutgoingExcel(){
+  if(outgoingSaveAndDownloadBusy)return;
+  if(!window.JSZip){alert("Excel 套表元件尚未載入，請確認網路連線後重新整理");return}
+  outgoingSaveAndDownloadBusy=true;
+  $("saveAndDownloadOutgoingButton").disabled=true;
+  $("saveOutgoingOnlyButton").disabled=true;
+  try{
+    if(!await saveOutgoingBatch({silent:true}))return;
+    const refreshWarning=$("outgoingSaveStatus").hidden?"":$("outgoingSaveStatus").textContent;
+    if(await downloadOutgoingExcel({skipValidation:true}))setOutgoingSaveStatus(refreshWarning?`Excel 已開始下載。${refreshWarning}`:"寄件資料已儲存，Excel 已開始下載。",Boolean(refreshWarning));
+    else setOutgoingSaveStatus("寄件資料已儲存，但 Excel 未能下載。請再按「儲存並下載 Excel」重試；不會新增重複批次。",true);
+  }finally{
+    outgoingSaveAndDownloadBusy=false;
+    $("saveAndDownloadOutgoingButton").disabled=false;
+    $("saveOutgoingOnlyButton").disabled=false;
+  }
+} window.saveAndDownloadOutgoingExcel=saveAndDownloadOutgoingExcel;
 
 function renderDepartmentMaintenance(){
 const area=$("deptListArea");
@@ -923,7 +1031,7 @@ function renderSimplePagination(id,total,current,cb){renderCompactPagination(id,
 
 ["searchInput","typeFilter","outgoingSourceFilter","deptFilter","printedFilter","dateStart","dateEnd"].forEach(id=>document.addEventListener("input",e=>{if(e.target?.id===id){currentPage=1;renderMailTable()}}));document.addEventListener("change",e=>{if(e.target?.id==="directionFilter"){["typeFilter","outgoingSourceFilter","deptFilter","printedFilter"].forEach(id=>$(id).value="")}if(["directionFilter","typeFilter","outgoingSourceFilter","deptFilter","printedFilter","dateStart","dateEnd"].includes(e.target?.id)){currentPage=1;renderMailTable()}if(["auditSearch","auditActionFilter"].includes(e.target?.id)){auditCurrentPage=1;renderAuditLogs()}});
 async function googleLogin(){try{await signInWithPopup(auth,provider)}catch(e){alert(e.message)}} window.googleLogin=googleLogin;
-async function logout(){sessionStorage.removeItem("mailLoginLogged");localStorage.removeItem("mailUserRole");localStorage.removeItem("mailUserEmail");localStorage.removeItem("mailUserName");await signOut(auth)} window.logout=logout;
+async function logout(){if(Object.keys(draftPageNames).some(hasUnsavedForm)&&!confirm("尚有未儲存的郵件資料。登出後這些修改會遺失，確定登出？"))return;await signOut(auth);resetMailForm();resetGeneralOutgoingForm(true);resetOutgoingForm();sessionStorage.removeItem("mailLoginLogged");localStorage.removeItem("mailUserRole");localStorage.removeItem("mailUserEmail");localStorage.removeItem("mailUserName")} window.logout=logout;
 
 onAuthStateChanged(auth,async(user)=>{
   currentIsSystemAdmin=false;

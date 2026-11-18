@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.18">
+<link rel="stylesheet" href="./styles.css?v=1.9.19">
 </head>
 <body>
 
@@ -31,8 +31,8 @@
           <div class="top-dropdown" id="mailWorkDropdown">
             <div class="menu-item active" data-tooltip="收件登錄" onclick="showPage('registerPage',this)"><i data-lucide="square-pen" class="menu-icon"></i><span>收件登錄</span></div>
             <div class="menu-item" data-tooltip="簽收單產生" onclick="openSheetPage(this)"><i data-lucide="printer" class="menu-icon"></i><span>簽收單產生</span></div>
-            <div class="menu-item" data-tooltip="一般寄件登錄" onclick="showPage('generalOutgoingPage',this); prepareGeneralOutgoingPage();"><i data-lucide="mail-plus" class="menu-icon"></i><span>一般寄件登錄</span></div>
-            <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="showPage('outgoingPage',this); prepareOutgoingPage();"><i data-lucide="send" class="menu-icon"></i><span>大宗掛號寄件</span></div>
+            <div class="menu-item" data-tooltip="一般寄件登錄" onclick="if(showPage('generalOutgoingPage',this)) prepareGeneralOutgoingPage();"><i data-lucide="mail-plus" class="menu-icon"></i><span>一般寄件登錄</span></div>
+            <div class="menu-item" data-tooltip="大宗掛號寄件" onclick="if(showPage('outgoingPage',this)) prepareOutgoingPage();"><i data-lucide="send" class="menu-icon"></i><span>大宗掛號寄件</span></div>
             <div class="menu-item" data-tooltip="郵件查詢" onclick="showPage('historyPage',this)"><i data-lucide="search" class="menu-icon"></i><span>郵件查詢</span></div>
             <div class="menu-item" data-tooltip="郵件統計" onclick="showPage('statsPage',this)"><i data-lucide="chart-no-axes-combined" class="menu-icon"></i><span>郵件統計</span></div>
           </div>
@@ -44,8 +44,8 @@
             <div class="menu-item admin-only" data-tooltip="郵件類型維護" onclick="showPage('mailTypePage',this)"><i data-lucide="tags" class="menu-icon"></i><span>郵件類型維護</span></div>
             <div class="menu-item admin-only" id="memberMenu" data-tooltip="人員管理" onclick="showPage('memberPage',this)"><i data-lucide="contact-round" class="menu-icon"></i><span>人員管理</span></div>
             <div class="menu-item admin-only" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)"><i data-lucide="users" class="menu-icon"></i><span>權限管理</span></div>
-            <div class="menu-item admin-only" id="auditLogMenu" data-tooltip="操作紀錄" onclick="showPage('auditLogPage',this); loadAuditLogs();"><i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span></div>
-            <div class="menu-item admin-only" id="loginLogMenu" data-tooltip="登入紀錄" onclick="showPage('loginLogPage',this); loadLoginLogs();"><i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span></div>
+            <div class="menu-item admin-only" id="auditLogMenu" data-tooltip="操作紀錄" onclick="if(showPage('auditLogPage',this)) loadAuditLogs();"><i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span></div>
+            <div class="menu-item admin-only" id="loginLogMenu" data-tooltip="登入紀錄" onclick="if(showPage('loginLogPage',this)) loadLoginLogs();"><i data-lucide="log-in" class="menu-icon"></i><span>登入紀錄</span></div>
           </div>
         </div>
       </nav>
@@ -225,22 +225,30 @@
             <label class="form-group"><span>交寄日期</span><input type="date" id="generalOutgoingDate"></label>
             <div class="form-group"><label for="generalOutgoingSender">寄件公司名稱</label><div class="receiver-combobox"><input type="text" id="generalOutgoingSender" list="outgoingSenderOptions" autocomplete="off" placeholder="輸入關鍵字或選擇歷史公司" aria-label="寄件公司名稱，可輸入關鍵字或展開寄件歷史公司"><button type="button" class="receiver-combobox-toggle" aria-label="展開歷史寄件公司" onclick="openOutgoingSuggestions(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div></div>
           </div>
-          <div class="general-import-bar">
-            <div><strong>Excel 批次匯入</strong><span>先預覽、修正欄位與資料，確認後才正式匯入。</span></div>
+          <div class="incoming-help-line">
+            <i data-lucide="circle-help"></i>
+            <span>收件人與地址可查找寄件歷史；掛號、限掛與快捷可交寄後補登完整 14／20 碼。</span>
+          </div>
+          <div class="general-tools-grid">
+          <details class="general-extra-tool" id="generalImportTool">
+            <summary><span><i data-lucide="file-spreadsheet"></i><strong>Excel 批次匯入</strong><small>需要匯入檔案時展開</small></span><i data-lucide="chevron-down" class="general-tool-chevron"></i></summary>
+            <div class="general-import-bar">
+            <div><span>先預覽、修正欄位與資料，確認後才正式匯入。</span></div>
             <div class="general-import-actions">
               <a class="btn btn-gray" href="./assets/一般寄件匯入範本.xlsx" download><i data-lucide="file-down"></i>下載範本</a>
               <button type="button" class="btn btn-gray" onclick="document.getElementById('generalImportFile').click()"><i data-lucide="file-up"></i>選擇 Excel</button>
               <input id="generalImportFile" type="file" accept=".xlsx,.xls,.csv" onchange="openExcelImportPreview(this.files[0])" hidden>
             </div>
-          </div>
-          <div class="incoming-help-line">
-            <i data-lucide="circle-help"></i>
-            <span>收件人與地址可查找寄件歷史；掛號、限掛與快捷可交寄後補登完整 14／20 碼。</span>
-          </div>
+            </div>
+          </details>
+          <details class="general-extra-tool" id="generalSuffixTool">
+            <summary><span><i data-lucide="hash"></i><strong>14 碼快速補齊</strong><small>只有前 6 碼時使用</small></span><i data-lucide="chevron-down" class="general-tool-chevron"></i></summary>
           <div class="general-tracking-suffix">
-            <div><strong>14 碼快速補齊</strong><small>若只輸入前 6 碼，請核對執據後填入同批後 8 碼；20 碼請直接輸入完整號碼。</small></div>
+            <div><small>若只輸入前 6 碼，請核對執據後填入同批後 8 碼；20 碼請直接輸入完整號碼。</small></div>
             <label>同批後 8 碼<input id="generalPostalSuffix8" inputmode="numeric" maxlength="8" placeholder="收寄局 6 碼＋種類 2 碼" oninput="refreshGeneralOutgoingRows()"></label>
             <button type="button" class="btn btn-gray" onclick="useLatestGeneralPostalSuffix()">帶入最近大宗後 8 碼</button>
+          </div>
+          </details>
           </div>
           <p id="generalTrackingPreview" class="general-tracking-preview" aria-live="polite"></p>
           <div class="table-wrap general-outgoing-entry-wrap">
@@ -291,10 +299,11 @@
             </div>
             <div>
               <button class="btn btn-gray" onclick="startNewOutgoingForm()"><i data-lucide="rotate-ccw"></i>清空重填</button>
-              <button class="btn btn-green" onclick="saveOutgoingBatch()"><i data-lucide="save"></i>儲存資料</button>
-              <button class="btn btn-primary" onclick="downloadOutgoingExcel()"><i data-lucide="file-spreadsheet"></i>下載 Excel</button>
+              <button class="btn btn-gray" id="saveOutgoingOnlyButton" onclick="saveOutgoingBatch()"><i data-lucide="save"></i>僅儲存</button>
+              <button class="btn btn-primary" id="saveAndDownloadOutgoingButton" onclick="saveAndDownloadOutgoingExcel()"><i data-lucide="file-spreadsheet"></i>儲存並下載 Excel</button>
             </div>
           </div>
+          <p id="outgoingSaveStatus" class="outgoing-save-status" role="status" aria-live="polite" hidden></p>
           <input type="hidden" id="outgoingBatchId">
           <div class="sender-profile-bar">
             <div>
@@ -498,6 +507,6 @@
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.0"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.18"></script>
+<script src="./app.js?v=1.9.19"></script>
 </body>
 </html>
