@@ -66,12 +66,17 @@
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
-  function normalizeMailType(value, fallback = "掛號") {
+  function normalizeMailType(value, fallback = "掛號函件") {
     const text = String(value ?? "").trim();
     if (!text) return fallback;
+    if (/雙掛號/.test(text)) return "雙掛號";
+    if (/掛號小包/.test(text)) return "掛號小包";
+    if (/掛號包裹/.test(text)) return "掛號包裹";
     if (/快捷|express/i.test(text)) return "快捷郵件";
     if (/限掛|限時掛號/.test(text)) return "限時掛號";
-    if (/掛號|registered/i.test(text)) return "掛號";
+    if (/掛號|registered/i.test(text)) return "掛號函件";
+    if (/印刷品/.test(text)) return "印刷品";
+    if (/限時/.test(text)) return "限時";
     if (/平信/.test(text)) return "平信";
     return text;
   }
@@ -88,7 +93,7 @@
         receiverName: get("receiverName"),
         address: get("address"),
         sendDate: parseDate(get("sendDate"), defaults.sendDate),
-        mailType: normalizeMailType(get("mailType"), defaults.mailType || "掛號"),
+        mailType: normalizeMailType(get("mailType"), defaults.mailType || "掛號函件"),
         senderName: get("senderName") || defaults.senderName || "",
         remark: get("remark"),
         excluded: false,

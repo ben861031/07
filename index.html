@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.21">
+<link rel="stylesheet" href="./styles.css?v=1.9.22">
 </head>
 <body>
 
@@ -41,7 +41,7 @@
           <button type="button" class="top-menu-button" aria-expanded="false" aria-controls="mailSystemDropdown" onclick="toggleTopMenu('systemMenuTitle')"><i data-lucide="settings" class="menu-icon"></i><span>系統管理</span><i data-lucide="chevron-down" class="top-chevron"></i></button>
           <div class="top-dropdown" id="mailSystemDropdown">
             <div class="menu-item admin-only" data-tooltip="部門維護" onclick="showPage('deptPage',this)"><i data-lucide="building-2" class="menu-icon"></i><span>部門維護</span></div>
-            <div class="menu-item admin-only" data-tooltip="郵件類型維護" onclick="showPage('mailTypePage',this)"><i data-lucide="tags" class="menu-icon"></i><span>郵件類型維護</span></div>
+            <div class="menu-item admin-only" data-tooltip="收件類型維護" onclick="showPage('mailTypePage',this)"><i data-lucide="tags" class="menu-icon"></i><span>收件類型維護</span></div>
             <div class="menu-item admin-only" id="memberMenu" data-tooltip="人員管理" onclick="showPage('memberPage',this)"><i data-lucide="contact-round" class="menu-icon"></i><span>人員管理</span></div>
             <div class="menu-item admin-only" id="permissionMenu" data-tooltip="權限管理" onclick="showPage('permissionPage',this)"><i data-lucide="users" class="menu-icon"></i><span>權限管理</span></div>
             <div class="menu-item admin-only" id="auditLogMenu" data-tooltip="操作紀錄" onclick="if(showPage('auditLogPage',this)) loadAuditLogs();"><i data-lucide="history" class="menu-icon"></i><span>操作紀錄</span></div>
@@ -213,7 +213,7 @@
           <div class="print-action-row page-action-header">
             <div>
               <h2 class="detail-title"><i data-lucide="mail-plus" class="detail-title-icon"></i>一般寄件登錄</h2>
-              <p class="page-desc">適用平信與少量掛號；有號碼時請記錄完整 14 或 20 碼，也可交寄後補登。</p>
+              <p class="page-desc">登錄少件、無須填寫大宗單的寄件；有單號時請記錄完整 14 或 20 碼，也可交寄後補登。</p>
             </div>
             <div class="general-outgoing-header-actions">
               <span class="pending-outgoing-chip"><i data-lucide="clock-3"></i>待補號碼 <b id="generalOutgoingPendingCount">0</b></span>
@@ -227,7 +227,7 @@
           </div>
           <div class="incoming-help-line">
             <i data-lucide="circle-help"></i>
-            <span>收件人與地址可查找寄件歷史；掛號、限掛與快捷可交寄後補登完整 14／20 碼。</span>
+            <span>收件人與地址可查找寄件歷史；需單號的郵件可交寄後補登完整 14／20 碼。</span>
           </div>
           <div class="general-tools-grid">
           <details class="general-extra-tool" id="generalImportTool">
@@ -276,7 +276,7 @@
           <div class="general-outgoing-list-heading">
             <div>
               <h2 class="detail-title"><i data-lucide="history" class="detail-title-icon"></i>一般寄件紀錄</h2>
-              <p class="page-desc">待補號碼的掛號、限掛與快捷郵件會優先顯示，可直接開啟補登。</p>
+              <p class="page-desc">待補單號的郵件會優先顯示，可直接開啟補登。</p>
             </div>
             <button class="btn btn-gray" onclick="openOutgoingHistory()"><i data-lucide="search"></i>查看全部寄件</button>
           </div>
@@ -403,13 +403,13 @@
 
       <section id="mailTypePage" class="page hidden">
         <div class="panel admin-wide-panel">
-          <h2 class="detail-title"><i data-lucide="tags" class="detail-title-icon"></i>郵件類型維護</h2>
-          <p class="page-desc">這裡設定的類型會顯示在「郵件登錄」與「郵件查詢」。刪除類型不會影響既有郵件紀錄。</p>
+          <h2 class="detail-title"><i data-lucide="tags" class="detail-title-icon"></i>收件類型維護</h2>
+          <p class="page-desc">只設定收件登錄的類型；一般寄件使用獨立種類。刪除類型不影響既有收件紀錄。</p>
           <div class="form-grid compact">
-            <div class="form-group"><label>郵件類型名稱</label><input type="text" id="newMailType" placeholder="例如：快捷、包裹"></div>
+            <div class="form-group"><label>收件類型名稱</label><input type="text" id="newMailType" placeholder="例如：快捷、包裹"></div>
             <div class="form-group"><label>顯示順序</label><input type="number" id="newMailTypeOrder"></div>
           </div>
-          <button class="btn btn-green" onclick="addMailType()"><i data-lucide="plus"></i>新增郵件類型</button>
+          <button class="btn btn-green" onclick="addMailType()"><i data-lucide="plus"></i>新增收件類型</button>
           <div id="mailTypeListArea" class="maintenance-list"></div>
         </div>
       </section>
@@ -505,8 +505,8 @@
 </dialog>
 <dialog id="outgoingSuffixDialog" class="postal-dialog" aria-labelledby="outgoingSuffixTitle"><h2 id="outgoingSuffixTitle">確認郵局查詢後 8 碼</h2><p id="outgoingSuffixSource" class="page-desc"></p><p class="page-desc">依郵局執據確認：收寄局碼 6 碼＋郵件種類碼 2 碼。這組碼只用於查詢，印單仍用前 6 碼。</p><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="outgoingOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"></label><label>郵件種類碼（2 碼）<input id="outgoingMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}"></label></div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="deferOutgoingSuffix()">交寄後補登</button><button class="btn btn-primary" type="button" onclick="confirmOutgoingSuffix()">確認使用</button></div></dialog>
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
-<script src="./scripts/mail-import.js?v=1.9.0"></script>
+<script src="./scripts/mail-import.js?v=1.9.22"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.21"></script>
+<script src="./app.js?v=1.9.22"></script>
 </body>
 </html>
