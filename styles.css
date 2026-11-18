@@ -41,12 +41,8 @@
 .company-sign-doc h1{text-align:center;font-size:30px;font-weight:700;letter-spacing:0;margin:8px 0 22px}
 .company-sign-meta{display:flex;justify-content:space-between;align-items:flex-end;font-size:16pt;margin:0 0 12px}
 .company-sign-table{width:100%;border-collapse:collapse;table-layout:fixed}
-.company-sign-table th,.company-sign-table td{border:1px solid #111;background:#fff;color:#111;padding:10px 8px;text-align:center;font-size:20px;height:54px}
+.company-sign-table th,.company-sign-table td{border:1px solid #111;background:#fff;color:#111;padding:10px 8px;text-align:center;font-size:20px;height:54px;overflow-wrap:anywhere}
 .company-sign-table th{font-size:22px;font-weight:700}
-.company-sign-table th:nth-child(1){width:23.5%}
-.company-sign-table th:nth-child(2){width:47.5%}
-.company-sign-table th:nth-child(3){width:17%}
-.company-sign-table th:nth-child(4){width:12%}
 
 .outgoing-wide-panel{width:100%;max-width:none}
 .outgoing-header-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -785,4 +781,13 @@ button,input,select,textarea{font:inherit}
   #registerPage .incoming-entry-table .row-action-btn,#generalOutgoingPage .general-outgoing-entry-table .row-action-btn{width:100%;min-width:0;padding:0 6px}
   .general-extra-tool>summary>span{gap:7px}
   .general-extra-tool>summary small{flex-basis:100%;padding-left:25px}
+}
+
+@media print{
+  .top-navbar{display:none!important}
+  .app{display:block!important;min-height:0!important}
+  .app>.main{display:block!important;flex:none!important;width:100%;padding:0!important}
+  #sheetPage>.panel:not(#sheetPreviewPanel){display:none!important}
+  #sheetPreviewPanel{display:block!important;margin:0!important}
+  #signSheetPreview{margin:0!important;padding:0!important;overflow:visible!important}
 }
