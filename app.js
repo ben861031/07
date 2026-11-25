@@ -942,10 +942,24 @@ function saveOutgoingSenderProfile(){const senderName=$("outgoingSenderName").va
 async function deleteOutgoingSenderProfile(){const id=$("outgoingSenderProfile").value,profiles=outgoingSenderProfiles(),profile=profiles.find(item=>item.id===id);if(!profile)return;if(!await askAppConfirm("刪除寄件人範本",`確定刪除寄件人範本「${profile.label}」？`,{danger:true,confirmText:"刪除"}))return;localStorage.setItem(OUTGOING_SENDER_PROFILES_KEY,JSON.stringify(profiles.filter(item=>item.id!==id)));renderOutgoingSenderProfiles()} window.deleteOutgoingSenderProfile=deleteOutgoingSenderProfile;
 function updateOutgoingSuffixStatus(){const suffix=$("outgoingPostalSuffix8").value,confirmed=PostalTracking.validSuffix(suffix);$("outgoingSuffixStatus").textContent=confirmed?"已確認":"待補登";$("outgoingSuffixValue").textContent=confirmed?suffix:"尚未設定";$("outgoingSuffixStrip").classList.toggle("is-confirmed",confirmed)}
 function latestPostalSuffixBatch(){return outgoingBatches.find(batch=>PostalTracking.validSuffix(batch.postalSuffix8))}
-function openOutgoingSuffixDialog(){const current=$("outgoingPostalSuffix8").value,latest=latestPostalSuffixBatch(),suggestion=current||(latest?.postalSuffix8||"");$("outgoingOfficeCode").value=suggestion.slice(0,6);$("outgoingMailCode").value=suggestion.slice(6,8);$("outgoingSuffixSource").textContent=current?"目前批次已填後 8 碼；請對照郵局執據確認。":latest?`建議沿用最近已確認批次 ${latest.batchNo||latest.id}（${formatDate(latest.sendDate)}）的後 8 碼；請先核對執據。`:"尚無已確認的歷史後 8 碼，請對照郵局執據填寫，或交寄後補登。";$("outgoingSuffixDialog").showModal()} window.openOutgoingSuffixDialog=openOutgoingSuffixDialog;
-function confirmOutgoingSuffix(){const suffix=$("outgoingOfficeCode").value.trim()+$("outgoingMailCode").value.trim();if(!PostalTracking.validSuffix(suffix)){alert("請分別填入 6 碼收寄局碼及 2 碼郵件種類碼");return}$("outgoingPostalSuffix8").value=suffix;outgoingSuffixPrompted=true;updateOutgoingSuffixStatus();$("outgoingSuffixDialog").close()} window.confirmOutgoingSuffix=confirmOutgoingSuffix;
-function deferOutgoingSuffix(){$("outgoingPostalSuffix8").value="";outgoingSuffixPrompted=true;updateOutgoingSuffixStatus();$("outgoingSuffixDialog").close()} window.deferOutgoingSuffix=deferOutgoingSuffix;
-function prepareOutgoingPage(){renderOutgoingSenderProfiles();if(!$("outgoingDate").value||!$("outgoingEntryRows").children.length)resetOutgoingForm(false);else refreshOutgoingRows();renderOutgoingBatchList();if(!$("outgoingPage").classList.contains("hidden")&&!$("outgoingBatchId").value&&!outgoingSuffixPrompted){outgoingSuffixPrompted=true;openOutgoingSuffixDialog()}}
+function openOutgoingSuffixDialog(){
+  const current=$("outgoingPostalSuffix8").value;
+  const latest=latestPostalSuffixBatch();
+  const suggestion=current||(latest?.postalSuffix8||"");
+  $("outgoingOfficeCode").value=suggestion.slice(0,6);
+  $("outgoingMailCode").value=suggestion.slice(6,8);
+  $("outgoingSuffixSource").textContent=current
+    ?"目前批次已填後 8 碼；請對照郵局執據確認。"
+    :latest
+      ?`建議沿用最近已確認批次 ${latest.batchNo||latest.id}（${formatDate(latest.sendDate)}）的後 8 碼；請先核對執據。`
+      :"尚無已確認的歷史後 8 碼，請對照郵局執據填寫，或交寄後補登。";
+  $("outgoingSuffixDialog").showModal();
+  outgoingSuffixPrompted=true;
+}
+window.openOutgoingSuffixDialog=openOutgoingSuffixDialog;
+function confirmOutgoingSuffix(){const suffix=$("outgoingOfficeCode").value.trim()+$("outgoingMailCode").value.trim();if(!PostalTracking.validSuffix(suffix)){alert("請分別填入 6 碼收寄局碼及 2 碼郵件種類碼");return}$("outgoingPostalSuffix8").value=suffix;updateOutgoingSuffixStatus();$("outgoingSuffixDialog").close()} window.confirmOutgoingSuffix=confirmOutgoingSuffix;
+function deferOutgoingSuffix(){$("outgoingPostalSuffix8").value="";updateOutgoingSuffixStatus();$("outgoingSuffixDialog").close()} window.deferOutgoingSuffix=deferOutgoingSuffix;
+function prepareOutgoingPage(){renderOutgoingSenderProfiles();if(!$("outgoingDate").value||!$("outgoingEntryRows").children.length)resetOutgoingForm(false);else refreshOutgoingRows();renderOutgoingBatchList();if(!$("outgoingPage").classList.contains("hidden")&&!$("outgoingBatchId").value&&!outgoingSuffixPrompted)openOutgoingSuffixDialog()}
 window.prepareOutgoingPage=prepareOutgoingPage;
 function startNewOutgoingForm(){const hasInput=outgoingRawItems().some(item=>item.trackingNo||item.receiverName||item.address||item.weight||item.postage||item.contents);if(hasInput&&!confirm("目前填寫的寄件明細將會清除，確定要清空重填嗎？"))return;resetOutgoingForm();openOutgoingSuffixDialog()} window.startNewOutgoingForm=startNewOutgoingForm;
 function renderOutgoingRows(items=[]){const rows=items.slice(0,20);while(rows.length<20)rows.push({});$("outgoingEntryRows").innerHTML=rows.map(outgoingRowHtml).join("");bindOutgoingGrid();refreshAllOutgoingAddressSuggestions();refreshOutgoingRows()}
