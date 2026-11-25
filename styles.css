@@ -907,3 +907,28 @@ button,input,select,textarea{font:inherit}
 }
 @media(max-width:420px){.mobile-nav-toggle span{font-size:12px}.app-toast{right:15px;bottom:15px}.app-feedback-actions .btn{flex:1}}
 @media print{.app-toast,.app-feedback-dialog,.mobile-nav-toggle{display:none!important}}
+
+/* v1.9.29: give the title and the five navigation groups separate visual space */
+@media(min-width:761px){
+  .top-navbar{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand user" "menu menu";column-gap:16px;row-gap:0;min-height:0;padding:0 24px}
+  .brand-area{grid-area:brand;height:56px;min-width:0;gap:10px;padding:0;border:0}
+  .brand-icon{width:36px;height:36px;border-radius:10px}
+  .brand-icon svg{width:21px;height:21px}
+  .brand-title{font-size:19px;font-weight:800;letter-spacing:.01em}
+  .top-user-area{grid-area:user;align-self:center;margin:0}
+  .top-user-text strong{font-size:14px;font-weight:700}
+  .top-menu{grid-area:menu;align-self:auto;display:flex;width:100%;height:46px;min-width:0;gap:8px;flex-basis:auto;margin:0;border-top:1px solid #eef2f7}
+  .top-menu-group{height:100%}
+  .top-menu-button{height:100%;gap:7px;padding:0 16px;font-size:14px;font-weight:700}
+  .top-menu-button>.menu-icon{width:16px;height:16px}
+  .top-chevron{width:14px;height:14px;margin-left:3px}
+  .top-menu-group.has-active>.top-menu-button{box-shadow:inset 0 -2px #2563eb}
+  .top-dropdown{top:100%}
+}
+@media(max-width:760px){
+  .top-navbar{display:flex}
+  .brand-area{gap:8px}
+  .brand-icon{width:34px;height:34px;border-radius:9px}
+  .brand-icon svg{width:20px;height:20px}
+  .brand-title{font-size:16px;font-weight:800}
+}
