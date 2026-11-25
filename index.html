@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.22">
+<link rel="stylesheet" href="./styles.css?v=1.9.23">
 </head>
 <body>
 
@@ -37,6 +37,13 @@
             <div class="menu-item" data-tooltip="郵件統計" onclick="showPage('statsPage',this)"><i data-lucide="chart-no-axes-combined" class="menu-icon"></i><span>郵件統計</span></div>
           </div>
         </div>
+        <div class="top-menu-group" id="postalToolsMenu">
+          <button type="button" class="top-menu-button" aria-expanded="false" aria-controls="postalToolsDropdown" onclick="toggleTopMenu('postalToolsMenu')"><i data-lucide="calculator" class="menu-icon"></i><span>郵務工具</span><i data-lucide="chevron-down" class="top-chevron"></i></button>
+          <div class="top-dropdown" id="postalToolsDropdown">
+            <div class="menu-item" data-tooltip="郵資試算" onclick="showPage('postagePage',this)"><i data-lucide="calculator" class="menu-icon"></i><span>郵資試算</span></div>
+            <div class="menu-item" data-tooltip="3碼郵遞區號查詢" onclick="showPage('postalCodePage',this)"><i data-lucide="map-pin" class="menu-icon"></i><span>3碼郵遞區號查詢</span></div>
+          </div>
+        </div>
         <div class="top-menu-group" id="systemMenuTitle">
           <button type="button" class="top-menu-button" aria-expanded="false" aria-controls="mailSystemDropdown" onclick="toggleTopMenu('systemMenuTitle')"><i data-lucide="settings" class="menu-icon"></i><span>系統管理</span><i data-lucide="chevron-down" class="top-chevron"></i></button>
           <div class="top-dropdown" id="mailSystemDropdown">
@@ -53,6 +60,30 @@
     </header>
 
     <main class="main">
+      <section id="postagePage" class="page hidden">
+        <div class="panel postal-tool-panel">
+          <h2 class="detail-title"><i data-lucide="calculator" class="detail-title-icon"></i>國內郵資試算</h2>
+          <p class="page-desc">選擇郵件種類、填入每件重量與件數，立即計算參考郵資。</p>
+          <div class="postal-tool-fields">
+            <label>郵件種類<select id="postageType"><option value="letter">平信（信函）</option><option value="letter_express">限時信函</option><option value="letter_registered">掛號函件</option><option value="letter_express_registered">限時掛號函件</option><option value="letter_return">雙掛號（掛號附回執）</option><option value="printed">印刷物</option><option value="printed_registered">掛號印刷物</option><option value="small_packet">小包</option><option value="small_packet_registered">掛號小包</option></select></label>
+            <label>每件重量（公克）<input id="postageWeight" type="number" inputmode="decimal" min="1" step="0.1" value="20"></label>
+            <label>件數<input id="postageQuantity" type="number" inputmode="numeric" min="1" max="100000" step="1" value="1"></label>
+          </div>
+          <div class="postage-result" aria-live="polite"><div><span>每件郵資</span><strong id="postageUnit">—</strong></div><div><span>件數</span><strong id="postageCount">—</strong></div><div class="postage-total"><span>預估總額</span><strong id="postageTotal">—</strong></div></div>
+          <p id="postageBreakdown" class="postal-tool-note"></p>
+          <p id="postageError" class="postal-tool-error" role="alert"></p>
+          <p class="postal-tool-note">依中華郵政國內函件資費表試算；快捷、包裹、國際郵件與特殊折扣請使用<a href="https://www.post.gov.tw/post/internet/Postal/index.jsp?ID=2020105" target="_blank" rel="noopener noreferrer">中華郵政官方資費查詢</a>。實收金額以郵局核定為準。</p>
+        </div>
+      </section>
+      <section id="postalCodePage" class="page hidden">
+        <div class="panel postal-tool-panel">
+          <h2 class="detail-title"><i data-lucide="map-pin" class="detail-title-icon"></i>3碼郵遞區號查詢</h2>
+          <p class="page-desc">輸入行政區名稱或郵遞區號前 3 碼，即可查到對應資料。</p>
+          <label class="postal-zip-label">行政區或前 3 碼<input id="postalZipQuery" type="search" autocomplete="off" placeholder="例如：臺北市中正區、100"></label>
+          <div id="postalZipResults" class="postal-zip-results" aria-live="polite">輸入行政區或郵遞區號前 3 碼。</div>
+          <p class="postal-tool-note">資料取自中華郵政公開的行政區 3 碼對照表（2016 年版本）；本頁僅提供前 3 碼。行政區名稱或郵遞區號如有異動，請以<a href="https://www.post.gov.tw/post/internet/Postal/index.jsp?ID=208" target="_blank" rel="noopener noreferrer">中華郵政最新資料</a>為準。</p>
+        </div>
+      </section>
       <section id="statsPage" class="page hidden">
         <div class="panel stats-panel">
           <div class="stats-heading">
@@ -507,6 +538,7 @@
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
 <script src="./scripts/mail-import.js?v=1.9.22"></script>
 <script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./app.js?v=1.9.22"></script>
+<script src="./scripts/postal-tools.js?v=1.9.23"></script>
+<script src="./app.js?v=1.9.23"></script>
 </body>
 </html>

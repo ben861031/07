@@ -791,3 +791,25 @@ button,input,select,textarea{font:inherit}
   #sheetPreviewPanel{display:block!important;margin:0!important}
   #signSheetPreview{margin:0!important;padding:0!important;overflow:visible!important}
 }
+.postal-tool-panel{max-width:960px}
+.postal-tool-fields{display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(2,minmax(140px,1fr));gap:16px;margin:28px 0 22px}
+.postal-tool-fields label{display:flex;flex-direction:column;gap:9px;font-size:15px;font-weight:800;color:#334155}
+.postal-tool-fields input,.postal-tool-fields select{width:100%;height:52px;padding:0 14px;border:1px solid #d7e2f1;border-radius:12px;background:#fff;color:#0f172a;font-size:16px}
+.postal-tool-fields input:focus-visible,.postal-tool-fields select:focus-visible{outline:3px solid #bfdbfe;outline-offset:1px;border-color:#2563eb}
+.postage-result{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.postage-result>div{display:flex;flex-direction:column;gap:7px;padding:18px 20px;border:1px solid #dbe5f2;border-radius:14px;background:#f8fafc}
+.postage-result span{font-size:14px;color:#64748b;font-weight:700}
+.postage-result strong{font-size:23px;color:#0f172a}
+.postage-result .postage-total{background:#eff6ff;border-color:#bfdbfe}
+.postage-result .postage-total strong{color:#1d4ed8}
+.postal-tool-note{margin-top:15px;color:#64748b;line-height:1.7;font-size:14px}
+.postal-tool-note a{color:#1d4ed8;text-decoration:underline;text-underline-offset:3px}
+.postal-tool-error{color:#b91c1c;font-weight:700;min-height:22px}
+.postal-zip-label{display:flex;flex-direction:column;gap:9px;margin:26px 0 16px;font-size:15px;font-weight:800;color:#334155}
+.postal-zip-label input{height:52px;padding:0 14px;border:1px solid #d7e2f1;border-radius:12px;background:#fff;color:#0f172a;font-size:16px}
+.postal-zip-label input:focus-visible{outline:3px solid #bfdbfe;outline-offset:1px;border-color:#2563eb}
+.postal-zip-results{min-height:60px;max-height:360px;overflow:auto;border:1px solid #dbe5f2;border-radius:14px;background:#fff;padding:8px 16px;color:#64748b}
+.postal-zip-row{display:flex;align-items:center;gap:22px;padding:12px 4px;border-bottom:1px solid #eef2f7;color:#334155}
+.postal-zip-row:last-child{border-bottom:0}
+.postal-zip-row strong{font-size:20px;color:#1d4ed8;font-variant-numeric:tabular-nums}
+@media(max-width:720px){.postal-tool-fields{grid-template-columns:1fr}.postage-result{grid-template-columns:1fr}}

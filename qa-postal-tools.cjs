@@ -1,0 +1,32 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const postal = require('./scripts/postal-tools.js');
+const root = __dirname;
+const total = (type, grams, count = 1) => postal.calculate(type, grams, count).total;
+
+assert.equal(total('letter', 20), 8);
+assert.equal(total('letter', 21), 16);
+assert.equal(total('letter_registered', 50, 3), 108);
+assert.equal(total('letter_express_registered', 20, 2), 70);
+assert.equal(total('letter_return', 20), 43);
+assert.equal(total('printed', 50), 6);
+assert.equal(total('printed_registered', 51), 31);
+assert.equal(total('small_packet', 101), 24);
+assert.equal(total('small_packet_registered', 101, 2), 88);
+assert.equal(total('letter', 2001), 208);
+assert.throws(() => total('small_packet', 1001), /1 公斤/);
+assert.throws(() => total('letter', 20, 1.5), /整數/);
+assert.throws(() => total('letter', 0), /大於 0/);
+
+const xml = fs.readFileSync(path.join(root, 'assets', 'postal-code3-source.xml'), 'utf8');
+assert.match(xml, /<行政區名>臺北市中正區<\/行政區名>/);
+assert.match(xml, /<_x0033_碼郵遞區號>100<\/_x0033_碼郵遞區號>/);
+const count = (xml.match(/<行政區名>/g) || []).length;
+assert.ok(count > 300, `3碼資料只有 ${count} 筆`);
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+assert.match(html, /郵務工具/);
+assert.match(html, /id="postagePage"/);
+assert.match(html, /id="postalCodePage"/);
+assert.match(html, /postal-tools\.js\?v=1\.9\.23/);
+console.log(`PASS: 郵資級距、件數、輸入限制及 ${count} 筆官方 3 碼資料`);
