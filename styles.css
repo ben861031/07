@@ -932,3 +932,36 @@ button,input,select,textarea{font:inherit}
   .brand-icon svg{width:20px;height:20px}
   .brand-title{font-size:16px;font-weight:800}
 }
+
+/* v1.9.30: one calm desktop row; collapse navigation when it no longer fits */
+@media(min-width:1101px){
+  .top-navbar{display:flex;align-items:center;flex-wrap:nowrap;gap:18px;min-height:70px;padding:0 22px}
+  .brand-area{height:auto;flex:0 0 auto;gap:9px;padding:0;border:0}
+  .brand-icon{width:35px;height:35px;border-radius:10px}
+  .brand-icon svg{width:21px;height:21px}
+  .brand-title{font-size:18px;font-weight:800;letter-spacing:0}
+  .top-menu{display:flex;align-self:stretch;flex:1 1 auto;justify-content:space-between;width:auto;height:auto;min-width:0;gap:0;margin:0;border:0}
+  .top-menu-group{height:auto}
+  .top-menu-button{gap:5px;padding:0 8px;font-size:14px;font-weight:700}
+  .top-menu-button>.menu-icon{width:16px;height:16px}
+  .top-chevron{width:13px;height:13px;margin-left:2px}
+  .top-user-area{flex:0 0 auto;align-self:center;margin-left:0}
+  .top-user-text strong{font-size:14px}
+}
+@media(min-width:761px) and (max-width:1100px){
+  .top-navbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:64px;padding:10px 18px}
+  .brand-area{height:auto;flex:1 1 auto;gap:8px;padding:0;border:0}
+  .brand-icon{width:34px;height:34px;border-radius:9px}
+  .brand-title{font-size:17px;font-weight:800}
+  .mobile-nav-toggle{display:inline-flex;order:2;margin-left:auto}
+  .top-user-area{order:3;width:auto;align-self:center;margin:0;padding:0;border:0}
+  .top-menu{display:none;order:4;flex:0 0 100%;flex-basis:100%;width:100%;height:auto;max-height:60vh;overflow:auto;flex-direction:column;gap:2px;margin:0;padding:6px 0;border-top:1px solid #eef2f7}
+  .top-navbar.mobile-open .top-menu{display:flex}
+  .top-menu-group{display:block;width:100%;height:auto}
+  .top-menu-button{width:100%;height:42px;gap:8px;padding:0 12px;font-size:14px}
+  .top-menu-button .top-chevron{margin-left:auto}
+  .top-menu-group.has-active>.top-menu-button{box-shadow:none;background:#eff6ff;border-radius:8px}
+  .top-dropdown{display:none;position:static;min-width:0;padding:2px 0 4px 20px;border:0;border-radius:0;box-shadow:none;opacity:1;visibility:visible;transform:none;transition:none}
+  .top-menu-group.open .top-dropdown{display:block}
+  .top-dropdown .menu-item{height:42px;font-size:14px}
+}
