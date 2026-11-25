@@ -1,7 +1,13 @@
 (async function initializeMailSystem(){
-const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
-const { getFirestore, collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc, deleteField, writeBatch, query, where, limit } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
-const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+const [
+  { initializeApp },
+  { getFirestore, collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc, deleteField, writeBatch, query, where, limit },
+  { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
+]=await Promise.all([
+  import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js"),
+  import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js"),
+  import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js")
+]);
 
 const firebaseConfig={apiKey:"AIzaSyCzvPwTbxc_Lg7peKRgP0zUrlmI6kkE0b4",authDomain:"seal-management-68465.firebaseapp.com",projectId:"seal-management-68465",storageBucket:"seal-management-68465.firebasestorage.app",messagingSenderId:"933578260928",appId:"1:933578260928:web:4c5f41252fd786e1bf0825",measurementId:"G-7RKPNF7BK9"};
 // 使用具名 Firebase App 隔離同網域其他系統的 Authentication 儲存空間。
@@ -22,6 +28,7 @@ let selectedSheetRecords=[],sheetMode="normal",activeReprintBatchNo="",activeRep
 let incomingSuggestionListSerial=0;
 let outgoingSuggestionListSerial=0,outgoingSuggestionEntries=[];
 let incomingSaveInProgress=false;
+let incomingStartupPending=true,outgoingStartupPending=true;
 const HISTORY_LIST_PAGE_SIZE=10;
 const historyListPages={print:1,general:1,bulk:1};
 let excelImportWorkbook=null,excelImportRows=[],excelImportMapping={},excelImportBusy=false,excelImportCurrentSheet="";
@@ -31,6 +38,29 @@ const draftBaselines=Object.create(null);
 const draftPageNames={registerPage:"收件登錄",generalOutgoingPage:"一般寄件登錄",outgoingPage:"大宗掛號寄件"};
 
 function $(id){return document.getElementById(id)}
+const documentLibraryUrls={
+  XLSX:"https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js",
+  JSZip:"https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+};
+const documentLibraryLoads=new Map();
+async function loadDocumentLibrary(name){
+  if(window[name])return true;
+  if(!documentLibraryLoads.has(name)){
+    const script=document.createElement("script");
+    script.src=documentLibraryUrls[name];
+    documentLibraryLoads.set(name,new Promise(resolve=>{
+      script.onload=()=>resolve(Boolean(window[name]));
+      script.onerror=()=>resolve(false);
+    }).then(ready=>{
+      if(!ready){script.remove();documentLibraryLoads.delete(name)}
+      return ready;
+    }));
+    document.head.append(script);
+  }
+  const ready=await documentLibraryLoads.get(name);
+  if(!ready)showAppToast("無法載入檔案處理元件，請確認網路後再試一次。","error");
+  return ready;
+}
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 let appToastTimer;
 function showAppToast(message,kind="success"){
@@ -83,9 +113,15 @@ window.toggleTopMenu=toggleTopMenu;
 function toggleMobileNav(){const header=document.querySelector(".top-navbar"),expanded=header.classList.toggle("mobile-open");$("mobileNavToggle").setAttribute("aria-expanded",String(expanded));if(!expanded)closeTopMenus()}
 function closeMobileNav(){document.querySelector(".top-navbar")?.classList.remove("mobile-open");$("mobileNavToggle")?.setAttribute("aria-expanded","false")}
 window.toggleMobileNav=toggleMobileNav;
+function mailPageIsLoading(pageId){
+  if(pageId==="sheetPage")return incomingStartupPending;
+  if(pageId==="generalOutgoingPage"||pageId==="outgoingPage")return outgoingStartupPending;
+  if(pageId==="historyPage"||pageId==="statsPage")return incomingStartupPending||outgoingStartupPending;
+  return false;
+}
 document.addEventListener("click",event=>{if(!event.target.closest(".top-menu-group"))closeTopMenus()});
 document.addEventListener("keydown",event=>{if(event.key==="Escape")closeTopMenus()});
-function showPage(pageId,el){const adminPages=["deptPage","mailTypePage","memberPage","permissionPage","auditLogPage","loginLogPage"];if(!$(pageId)||(!canAdmin()&&adminPages.includes(pageId))||(pageId==="memberPage"&&!currentIsSystemAdmin)){pageId="registerPage";el=document.querySelector('[onclick*=registerPage]')}const current=document.querySelector(".page:not(.hidden)")?.id;if(current&&current!==pageId&&!confirmLeaveForm(current))return false;document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));$(pageId)?.classList.remove("hidden");document.querySelectorAll(".menu-item").forEach(i=>i.classList.remove("active"));if(el)el.classList.add("active");document.querySelectorAll(".top-menu-group").forEach(group=>group.classList.toggle("has-active",!!group.querySelector(".menu-item.active")));closeTopMenus();closeMobileNav();window.scrollTo({top:0,left:0,behavior:"auto"});if(pageId==="deptPage"){loadDepartments().catch(error=>{console.error("部門重新載入失敗",error);renderDepartmentMaintenanceError(error);});}if(pageId==="mailTypePage")loadMailTypes();if(pageId==="memberPage")loadMemberManagement(true).catch(error=>{console.error("人員重新載入失敗",error);const area=$("memberTableArea");if(area)area.innerHTML=`<div class="error-box">人員清單讀取失敗：${esc(error?.message||error)}</div>`});if(pageId==="permissionPage")loadUsers(true).catch(error=>{console.error("權限重新載入失敗",error);const area=$("userListArea");if(area)area.innerHTML=`<div class="error-box">權限清單讀取失敗：${esc(error?.message||error)}</div>`});if(window.lucide)lucide.createIcons();return true;}
+function showPage(pageId,el){if(mailPageIsLoading(pageId)){showAppToast("郵件紀錄正在載入，請稍後再開啟。","info");return false}const adminPages=["deptPage","mailTypePage","memberPage","permissionPage","auditLogPage","loginLogPage"];if(!$(pageId)||(!canAdmin()&&adminPages.includes(pageId))||(pageId==="memberPage"&&!currentIsSystemAdmin)){pageId="registerPage";el=document.querySelector('[onclick*=registerPage]')}const current=document.querySelector(".page:not(.hidden)")?.id;if(current&&current!==pageId&&!confirmLeaveForm(current))return false;document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));$(pageId)?.classList.remove("hidden");document.querySelectorAll(".menu-item").forEach(i=>i.classList.remove("active"));if(el)el.classList.add("active");document.querySelectorAll(".top-menu-group").forEach(group=>group.classList.toggle("has-active",!!group.querySelector(".menu-item.active")));closeTopMenus();closeMobileNav();window.scrollTo({top:0,left:0,behavior:"auto"});if(pageId==="deptPage"){loadDepartments().catch(error=>{console.error("部門重新載入失敗",error);renderDepartmentMaintenanceError(error);});}if(pageId==="mailTypePage")loadMailTypes();if(pageId==="memberPage")loadMemberManagement(true).catch(error=>{console.error("人員重新載入失敗",error);const area=$("memberTableArea");if(area)area.innerHTML=`<div class="error-box">人員清單讀取失敗：${esc(error?.message||error)}</div>`});if(pageId==="permissionPage")loadUsers(true).catch(error=>{console.error("權限重新載入失敗",error);const area=$("userListArea");if(area)area.innerHTML=`<div class="error-box">權限清單讀取失敗：${esc(error?.message||error)}</div>`});if(window.lucide)lucide.createIcons();return true;}
 window.showPage=showPage;
 document.querySelectorAll(".menu-item").forEach(item=>{item.setAttribute("role","button");item.tabIndex=0;item.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();item.click()}})});
 function restoreLastPage(){localStorage.removeItem("mailLastPage");showPage("registerPage",document.querySelector('[onclick*=registerPage]'))}
@@ -168,7 +204,7 @@ async function saveSharedMember(){if(blockUserAdminAction())return;if(sharedPeop
 async function toggleSharedMember(id,active){if(blockUserAdminAction())return;if(sharedPeopleError){alert("共用人員資料未完整載入");return}const member=sharedMemberList.find(item=>item.id===id);if(!member)return;if(!active&&!confirm(`確定停用 ${member.name||"這位人員"}？共用主檔狀態會影響其他系統；郵件權限請另至權限管理確認。`))return;try{await updateDoc(doc(db,"members",id),{active,updatedAt:new Date(),updatedByEmail:normalizeMailEmail(currentUserEmail)});await writeAuditLog({action:"update",category:"member",targetId:id,targetLabel:member.name,before:{active:member.active!==false},after:{active}});await refreshSharedManagement()}catch(error){alert(`變更人員狀態失敗：${error?.code==="permission-denied"?"沒有共用主檔寫入權限":error?.message||error}`)}}window.toggleSharedMember=toggleSharedMember;
 async function deleteSharedMember(id){if(blockUserAdminAction())return;if(sharedPeopleError){alert("共用人員資料未完整載入");return}const member=sharedMemberList.find(item=>item.id===id);if(!member)return;const email=mailMemberEmail(member);if(!await askAppConfirm("刪除共用人員",`確定永久刪除 ${mailMemberDepartment(member)} ${member.name||"這位人員"}？建議離職人員優先使用「停用」。`,{danger:true,confirmText:"繼續"}))return;if(!await askAppConfirm("再次確認跨系統刪除","此動作會刪除共用人員、Google 帳號與印鑑權限，並停用對應的郵件白名單。確定繼續？",{danger:true,confirmText:"永久刪除"}))return;try{const batch=writeBatch(db);batch.delete(doc(db,"members",id));sharedMemberAccountList.filter(item=>(item.memberId||item.id)===id).forEach(item=>batch.delete(doc(db,"memberAccounts",item.id)));if(email)batch.delete(doc(db,"sealPermissions",email));userList.filter(user=>normalizeMailEmail(user.email)===email).forEach(user=>batch.update(doc(db,"users",user.id),{enabled:false}));await batch.commit();await writeAuditLog({action:"delete",category:"member",targetId:id,targetLabel:member.name,before:member});await refreshSharedManagement();showAppToast("已刪除共用人員。") }catch(error){showAppToast(`刪除共用人員失敗：${error?.code==="permission-denied"?"沒有共用主檔寫入權限":error?.message||error}`,"error")}}window.deleteSharedMember=deleteSharedMember;
 function memberExportRows(){return sharedMemberList.map(member=>({"部門":mailMemberDepartment(member),"姓名":member.name||"","員工編號":mailMemberEmployeeNo(member),"Google帳號":mailMemberEmail(member),"狀態":member.active===false?"停用":"啟用"}))}
-function writeMemberWorkbook(rows,name){if(!window.XLSX){alert("Excel 元件尚未載入，請確認網路連線後重試");return}const sheet=XLSX.utils.json_to_sheet(rows,{header:["部門","姓名","員工編號","Google帳號","狀態"]});sheet["!cols"]=[{wch:18},{wch:16},{wch:17},{wch:32},{wch:12}];const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,sheet,"人員名單");XLSX.writeFile(book,name)}
+async function writeMemberWorkbook(rows,name){if(!await loadDocumentLibrary("XLSX"))return;const sheet=XLSX.utils.json_to_sheet(rows,{header:["部門","姓名","員工編號","Google帳號","狀態"]});sheet["!cols"]=[{wch:18},{wch:16},{wch:17},{wch:32},{wch:12}];const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,sheet,"人員名單");XLSX.writeFile(book,name)}
 function downloadMemberTemplate(){writeMemberWorkbook([{"部門":"行政部","姓名":"王小明","員工編號":"7901","Google帳號":"example@gmail.com","狀態":"啟用"}],"人員匯入標準範本.xlsx")}window.downloadMemberTemplate=downloadMemberTemplate;
 function exportSharedMembers(){writeMemberWorkbook(memberExportRows(),"共用人員名單.xlsx")}window.exportSharedMembers=exportSharedMembers;
 function chooseMemberImport(){if(blockUserAdminAction())return;pendingMemberImport=null;$("memberImportSummary").innerHTML="";$("memberImportErrors").innerHTML="";$("memberImportReview").innerHTML="";$("memberImportMissing").innerHTML="";$("confirmMemberImportButton").disabled=true;document.querySelector('input[name="memberImportMode"][value="partial"]').checked=true;$("memberImportDialog").showModal()}window.chooseMemberImport=chooseMemberImport;
@@ -177,7 +213,7 @@ function memberCell(row,names){for(const name of names){const key=Object.keys(ro
 function buildMemberImportReview(rows,mode){const emailNames=["Google帳號","Google 帳號","Google Email","Email","電子郵件"],hasEmailColumn=Object.keys(rows[0]||{}).some(key=>emailNames.includes(String(key).replace(/^\uFEFF/,"").trim())),validDepartments=new Set(departmentList.map(item=>item.name)),existingByNo=new Map(sharedMemberList.map(member=>[mailMemberEmployeeNo(member),member]).filter(item=>item[0])),seenNos=new Set(),seenEmails=new Set(),uploadedNos=new Set(),errors=[],items=[];rows.forEach((row,index)=>{const line=index+2,department=String(memberCell(row,["部門"])).trim(),name=String(memberCell(row,["姓名"])).trim(),employeeNo=String(memberCell(row,["員工編號","員編"])).trim(),email=normalizeMailEmail(memberCell(row,emailNames)),status=String(memberCell(row,["狀態"])).trim().toLowerCase();if(employeeNo)uploadedNos.add(employeeNo);if(!department||!name||!employeeNo){errors.push(`第 ${line} 列：部門、姓名與員工編號為必填`);return}if(!validDepartments.has(department)){errors.push(`第 ${line} 列：找不到部門「${department}」`);return}if(seenNos.has(employeeNo)){errors.push(`第 ${line} 列：員工編號 ${employeeNo} 重複`);return}seenNos.add(employeeNo);if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errors.push(`第 ${line} 列：Google 帳號格式不正確`);return}if(email&&seenEmails.has(email)){errors.push(`第 ${line} 列：Google 帳號 ${email} 重複`);return}if(email)seenEmails.add(email);const existing=existingByNo.get(employeeNo)||null,owner=email&&sharedMemberList.find(member=>member.id!==existing?.id&&mailMemberEmail(member)===email);if(owner){errors.push(`第 ${line} 列：Google 帳號已由 ${owner.name||"其他人員"} 使用`);return}items.push({line,existing,data:{department,name,employeeNo,active:!["停用","否","false","0","no"].includes(status)},email:hasEmailColumn?email:existing?mailMemberEmail(existing):"",writeEmail:hasEmailColumn})});const missing=mode==="full"?sharedMemberList.filter(member=>member.active!==false&&!uploadedNos.has(mailMemberEmployeeNo(member))):[];return{mode,items,errors,missing,addCount:items.filter(item=>!item.existing).length,updateCount:items.filter(item=>item.existing).length}}
 function renderMemberImportReview(){const state=pendingMemberImport;if(!state)return;const review=state.review;$("memberImportSummary").innerHTML=`<div><span>檔案</span><strong>${esc(state.fileName)}</strong></div><div><span>可匯入</span><strong>${review.items.length}</strong></div><div><span>新增</span><strong>${review.addCount}</strong></div><div><span>更新</span><strong>${review.updateCount}</strong></div><div><span>錯誤</span><strong>${review.errors.length}</strong></div>`;$("memberImportErrors").innerHTML=review.errors.length?`<details><summary>${review.errors.length} 筆資料有誤，匯入時會略過</summary><ul>${review.errors.map(error=>`<li>${esc(error)}</li>`).join("")}</ul></details>`:"";$("memberImportReview").innerHTML=review.items.length?`<table class="management-table"><thead><tr><th>處理</th><th>部門</th><th>姓名</th><th>員工編號</th><th>Google 帳號</th><th>狀態</th></tr></thead><tbody>${review.items.map(item=>`<tr><td>${item.existing?"更新":"新增"}</td><td>${esc(item.data.department)}</td><td>${esc(item.data.name)}</td><td>${esc(item.data.employeeNo)}</td><td>${esc(item.email||"未設定")}</td><td>${item.data.active?"啟用":"停用"}</td></tr>`).join("")}</tbody></table>`:'<div class="permission-empty">沒有可匯入的資料</div>';$("memberImportMissing").innerHTML=review.mode==="full"?`<div class="member-missing-head"><strong>檔案中未出現的啟用人員：${review.missing.length} 位</strong><span>僅勾選的人員會停用</span></div>${review.missing.length?`<div class="member-missing-list">${review.missing.map(member=>`<label><input type="checkbox" class="member-missing-check" value="${esc(member.id)}"><span>${esc(mailMemberDepartment(member))} · ${esc(member.name||"")} · ${esc(mailMemberEmployeeNo(member))}</span></label>`).join("")}</div>`:""}`:"";$("confirmMemberImportButton").disabled=!review.items.length}
 function updateMemberImportMode(){if(!pendingMemberImport)return;pendingMemberImport.review=buildMemberImportReview(pendingMemberImport.rows,document.querySelector('input[name="memberImportMode"]:checked')?.value||"partial");renderMemberImportReview()}window.updateMemberImportMode=updateMemberImportMode;
-async function importSharedMembers(file){if(!file)return;if(!window.XLSX){alert("Excel 元件尚未載入，請確認網路連線後重試");return}if(sharedPeopleError){alert("共用人員資料未完整載入，無法安全比對匯入資料");return}try{const workbook=XLSX.read(await file.arrayBuffer(),{type:"array"}),sheet=workbook.Sheets[workbook.SheetNames[0]],rows=XLSX.utils.sheet_to_json(sheet,{defval:"",raw:false});if(!rows.length)throw new Error("檔案沒有可匯入的資料");pendingMemberImport={fileName:file.name,rows,review:buildMemberImportReview(rows,document.querySelector('input[name="memberImportMode"]:checked')?.value||"partial")};renderMemberImportReview()}catch(error){pendingMemberImport=null;$("memberImportErrors").innerHTML=`<div class="error-box">讀取失敗：${esc(error?.message||error)}</div>`;$("confirmMemberImportButton").disabled=true}}window.importSharedMembers=importSharedMembers;
+async function importSharedMembers(file){if(!file)return;if(!await loadDocumentLibrary("XLSX"))return;if(sharedPeopleError){alert("共用人員資料未完整載入，無法安全比對匯入資料");return}try{const workbook=XLSX.read(await file.arrayBuffer(),{type:"array"}),sheet=workbook.Sheets[workbook.SheetNames[0]],rows=XLSX.utils.sheet_to_json(sheet,{defval:"",raw:false});if(!rows.length)throw new Error("檔案沒有可匯入的資料");pendingMemberImport={fileName:file.name,rows,review:buildMemberImportReview(rows,document.querySelector('input[name="memberImportMode"]:checked')?.value||"partial")};renderMemberImportReview()}catch(error){pendingMemberImport=null;$("memberImportErrors").innerHTML=`<div class="error-box">讀取失敗：${esc(error?.message||error)}</div>`;$("confirmMemberImportButton").disabled=true}}window.importSharedMembers=importSharedMembers;
 async function confirmSharedMemberImport(){if(blockUserAdminAction()||memberImportBusy||!pendingMemberImport)return;const review=pendingMemberImport.review,disableIds=review.mode==="full"?[...document.querySelectorAll(".member-missing-check:checked")].map(input=>input.value):[];if(!review.items.length)return;memberImportBusy=true;const button=$("confirmMemberImportButton");button.disabled=true;button.textContent="匯入中...";let saved=0,disabled=0;try{for(const item of review.items){await persistSharedMember(item);saved++}for(const id of disableIds){await updateDoc(doc(db,"members",id),{active:false,updatedAt:new Date(),updatedByEmail:normalizeMailEmail(currentUserEmail)});disabled++}await writeAuditLog({action:"update",category:"member",targetLabel:"共用人員 Excel 匯入",after:{fileName:pendingMemberImport.fileName,added:review.addCount,updated:review.updateCount,disabled}});memberImportBusy=false;closeMemberImport();await refreshSharedManagement();alert(`匯入完成：${saved} 位人員${disabled?`，另停用 ${disabled} 位`:""}`)}catch(error){console.error("匯入共用人員失敗",error);memberImportBusy=false;try{await refreshSharedManagement();updateMemberImportMode()}catch(reloadError){console.error(reloadError)}alert(`已處理 ${saved} 位人員、停用 ${disabled} 位後停止。請核對資料再重試。\n${error?.code==="permission-denied"?"目前帳號沒有共用主檔寫入權限":error?.message||error}`)}finally{button.disabled=false;button.textContent="確認匯入"}}window.confirmSharedMemberImport=confirmSharedMemberImport;
 async function loadMailRecords(){const snap=await getDocs(collection(db,"mailRecords"));mailRecords=[];snap.forEach(s=>mailRecords.push({id:s.id,...s.data()}));mailRecords.sort((a,b)=>(getTime(b.createdTime)||Date.parse(b.receiveDate||0))-(getTime(a.createdTime)||Date.parse(a.receiveDate||0)));renderDashboard();renderMailTable();renderSheetPage();refreshIncomingSenderSuggestions();refreshAllIncomingReceiverSuggestions()}
 async function loadOutgoingBatches(){const snap=await getDocs(collection(db,"outgoingMailBatches"));outgoingBatches=[];generalOutgoingRecords=[];snap.forEach(s=>{const record={id:s.id,...s.data()};if(record.sourceType==="general")generalOutgoingRecords.push(record);else outgoingBatches.push(record)});outgoingBatches.sort((a,b)=>(getTime(b.createdTime)||Date.parse(b.sendDate||0))-(getTime(a.createdTime)||Date.parse(a.sendDate||0)));generalOutgoingRecords.sort((a,b)=>(getTime(b.updatedTime)||getTime(b.createdTime)||Date.parse(b.sendDate||0))-(getTime(a.updatedTime)||getTime(a.createdTime)||Date.parse(a.sendDate||0)));refreshOutgoingHistorySuggestions();renderDashboard();renderOutgoingBatchList();renderGeneralOutgoingList();renderMailTable();}
@@ -302,12 +338,20 @@ function resetMailForm(){
 function finishEarlyIncomingForm(){
   const early=$("incomingEntryRows").querySelector("[data-early-boot]"),date=$("receiveDate").value;
   const values=early?incomingRowValues(early):null;
+  const focused=early?.contains(document.activeElement)?document.activeElement:null;
+  const field=focused?.dataset.field;
+  const selection=focused?.tagName==="INPUT"?[focused.selectionStart,focused.selectionEnd]:null;
   resetMailForm();
   if(values&&(values.trackingNo||values.sender||values.receiver||values.remark||values.mailType!=="掛號"||date!==todayStr())){
     renderIncomingRows([values]);
     if(date)$("receiveDate").value=date;
   }
-  $("saveIncomingButton").disabled=false;$("incomingResetButton").disabled=false;
+  if(field){
+    const control=$("incomingEntryRows").querySelector(`[data-field="${field}"]`);
+    control?.focus({preventScroll:true});
+    if(selection?.[0]!=null)control?.setSelectionRange(...selection);
+  }
+  $("incomingResetButton").disabled=false;
 }
 
 function hideIncomingValidation(){const box=$("incomingValidationMessage");box.hidden=true;box.textContent="";$("receiveDate").classList.remove("incoming-field-invalid");$("receiveDate").removeAttribute("aria-invalid")}
@@ -567,7 +611,7 @@ async function openExcelImportPreview(file){
   if(!file)return;
   try{
     if(file.size>10*1024*1024)throw new Error("檔案超過 10 MB，請先拆分或精簡工作表");
-    if(!window.XLSX)throw new Error("Excel 讀取元件尚未載入，請重新整理網頁後再試");
+    if(!await loadDocumentLibrary("XLSX"))return;
     excelImportWorkbook=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:false});
     if(!excelImportWorkbook.SheetNames.length)throw new Error("檔案中沒有工作表");
     const ranked=excelImportWorkbook.SheetNames.map(name=>{
@@ -817,7 +861,7 @@ function renderPagination(total){renderCompactPagination("paginationArea",total,
 function changePageSize(){pageSize=parseInt($("pageSizeSelect").value);currentPage=1;renderMailTable()} window.changePageSize=changePageSize;
 function resetHistoryFilter(){["searchInput","typeFilter","outgoingSourceFilter","deptFilter","printedFilter","dateStart","dateEnd"].forEach(id=>$(id).value="");const panel=$("advancedFilter"),button=$("advancedFilterButton");panel.classList.remove("show");button.classList.remove("is-active");button.setAttribute("aria-expanded","false");$("filterToggleText").textContent="進階篩選";currentPage=1;renderMailTable()} window.resetHistoryFilter=resetHistoryFilter;
 function toggleAdvancedFilter(){const panel=$("advancedFilter"),button=$("advancedFilterButton"),opened=panel.classList.toggle("show");button.classList.toggle("is-active",opened);button.setAttribute("aria-expanded",String(opened));$("filterToggleText").textContent=opened?"收合篩選":"進階篩選"} window.toggleAdvancedFilter=toggleAdvancedFilter;
-function exportExcel(){const outgoing=$("directionFilter")?.value==="outgoing";const data=outgoing?getFilteredOutgoingRecords().map(record=>({交寄日期:formatDate(record.sendDate),郵件類型:record.mailType,郵局執據種類:record.sourceType==="bulk"?record.originalMailType||"":"",掛號號碼:record.postalTrackingNo||record.trackingNo||"",大宗前6碼:record.sourceType==="bulk"?record.trackingNo||"":"",收件人:record.receiverName,寄達地址:record.address,寄件公司名稱:record.senderName||"",來源:record.sourceLabel,狀態:generalOutgoingStatusLabel(record.trackingStatus),備註:record.remark||"",批次編號:record.batchNo||record.recordNo||""})):getFilteredRecords().map(r=>({收件日期:formatDate(r.receiveDate),郵件類型:r.mailType,掛號單號:r.trackingNo||"",寄件人:r.sender,收件部門:r.department,收件人:r.receiver,備註:r.remark||"",列印狀態:r.printed?"已列印":"未列印",登錄人:r.createdBy||""}));const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,outgoing?"寄件紀錄":"郵件簽收紀錄");XLSX.writeFile(wb,outgoing?"寄件紀錄.xlsx":"郵件簽收紀錄.xlsx")} window.exportExcel=exportExcel;
+async function exportExcel(){const outgoing=$("directionFilter")?.value==="outgoing";const data=outgoing?getFilteredOutgoingRecords().map(record=>({交寄日期:formatDate(record.sendDate),郵件類型:record.mailType,郵局執據種類:record.sourceType==="bulk"?record.originalMailType||"":"",掛號號碼:record.postalTrackingNo||record.trackingNo||"",大宗前6碼:record.sourceType==="bulk"?record.trackingNo||"":"",收件人:record.receiverName,寄達地址:record.address,寄件公司名稱:record.senderName||"",來源:record.sourceLabel,狀態:generalOutgoingStatusLabel(record.trackingStatus),備註:record.remark||"",批次編號:record.batchNo||record.recordNo||""})):getFilteredRecords().map(r=>({收件日期:formatDate(r.receiveDate),郵件類型:r.mailType,掛號單號:r.trackingNo||"",寄件人:r.sender,收件部門:r.department,收件人:r.receiver,備註:r.remark||"",列印狀態:r.printed?"已列印":"未列印",登錄人:r.createdBy||""}));if(!await loadDocumentLibrary("XLSX"))return;const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,outgoing?"寄件紀錄":"郵件簽收紀錄");XLSX.writeFile(wb,outgoing?"寄件紀錄.xlsx":"郵件簽收紀錄.xlsx")} window.exportExcel=exportExcel;
 
 function printSnapshotOf(record){return {receiveDate:record.receiveDate||"",mailType:record.mailType||"",trackingNo:record.trackingNo||"",sender:record.sender||"",department:record.department||"",receiver:record.receiver||"",remark:record.remark||""}}
 function originalPrintRecord(record){return record.printSnapshot?{...record,...record.printSnapshot,id:record.id}:record}
@@ -900,7 +944,7 @@ function fillCompanySignSheetXml(xmlText,rows,date){
 }
 async function logReprint(method){if(sheetMode!=="reprint")return;await writeAuditLog({action:"reprint",category:"signSheet",targetLabel:activeReprintBatchNo||activeReprintLabel||"補印",after:{count:selectedSheetRecords.length,departments:[...new Set(selectedSheetRecords.map(r=>r.department))].join(","),receiveDate:$("sheetDate").value||"",method,sourceBatchNo:activeReprintBatchNo||""}})}
 async function printCompanySignSheet(){if(!selectedSheetRecords.length){showAppToast("請先產生簽收單","error");return}await logReprint("列印預覽");window.print()} window.printCompanySignSheet=printCompanySignSheet;
-async function downloadCompanySignSheet(){if(!selectedSheetRecords.length){showAppToast("請先勾選部門並產生簽收單","error");return}if(!window.JSZip){showAppToast("Word 套表元件尚未載入，請確認網路連線後重新整理","error");return}try{const date=$("sheetDate").value||todayStr(),templateUrl=`./公司信件簽收單_原始範本.docx?refresh=${Date.now()}`,response=await fetch(templateUrl,{cache:"no-store"});if(!response.ok)throw new Error(`無法讀取公司簽收單範本（${response.status}）`);const zip=await JSZip.loadAsync(await response.arrayBuffer()),documentFile=zip.file("word/document.xml");if(!documentFile)throw new Error("公司簽收單範本缺少 document.xml");zip.file("word/document.xml",fillCompanySignSheetXml(await documentFile.async("string"),selectedSheetRecords,date));const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"}),url=URL.createObjectURL(blob),link=document.createElement("a"),departments=[...new Set(selectedSheetRecords.map(row=>row.department))].join("_");link.href=url;link.download=`${sheetMode==="reprint"?"補印_":""}信件簽收單_${date}_${departments}.docx`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);await logReprint("下載 Word");showAppToast("Word 簽收單已開始下載。")}catch(error){console.error(error);showAppToast("產生公司版簽收單失敗：" + (error?.message||error),"error")}} window.downloadCompanySignSheet=downloadCompanySignSheet;
+async function downloadCompanySignSheet(){if(!selectedSheetRecords.length){showAppToast("請先勾選部門並產生簽收單","error");return}const date=$("sheetDate").value||todayStr(),records=selectedSheetRecords.slice(),mode=sheetMode;if(!await loadDocumentLibrary("JSZip"))return;try{const templateUrl=`./公司信件簽收單_原始範本.docx?refresh=${Date.now()}`,response=await fetch(templateUrl,{cache:"no-store"});if(!response.ok)throw new Error(`無法讀取公司簽收單範本（${response.status}）`);const zip=await JSZip.loadAsync(await response.arrayBuffer()),documentFile=zip.file("word/document.xml");if(!documentFile)throw new Error("公司簽收單範本缺少 document.xml");zip.file("word/document.xml",fillCompanySignSheetXml(await documentFile.async("string"),records,date));const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"}),url=URL.createObjectURL(blob),link=document.createElement("a"),departments=[...new Set(records.map(row=>row.department))].join("_");link.href=url;link.download=`${mode==="reprint"?"補印_":""}信件簽收單_${date}_${departments}.docx`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);await logReprint("下載 Word");showAppToast("Word 簽收單已開始下載。")}catch(error){console.error(error);showAppToast("產生公司版簽收單失敗：" + (error?.message||error),"error")}} window.downloadCompanySignSheet=downloadCompanySignSheet;
 async function markSelectedAsPrinted(){if(sheetMode==="reprint"){showAppToast("補印模式不會變更首次列印資料","error");return}if(!selectedSheetRecords.length){showAppToast("請先產生簽收單","error");return}if(!await askAppConfirm("標記為已列印",`確定將 ${selectedSheetRecords.length} 筆郵件標記為已列印？`,{confirmText:"確認標記"}))return;const batchNo=`MAIL-${Date.now()}`;for(const r of selectedSheetRecords){await updateDoc(doc(db,"mailRecords",r.id),{printed:true,printBatchNo:batchNo,printedAt:new Date(),printedBy:currentUser,printSnapshot:printSnapshotOf(r)})}await writeAuditLog({action:"print",category:"signSheet",targetLabel:batchNo,after:{count:selectedSheetRecords.length,departments:[...new Set(selectedSheetRecords.map(r=>r.department))].join(",")}});showAppToast("已標記為已列印。");selectedSheetRecords=[];setSheetMode("normal");await loadMailRecords();}
 window.markSelectedAsPrinted=markSelectedAsPrinted;
 
@@ -1065,7 +1109,7 @@ function setWordCellText(cell,text,fontSizeHalfPoints){const paragraph=cell.getE
 function fillWordHeader(xmlDoc,data){const paragraphs=[...xmlDoc.getElementsByTagNameNS(WORD_NS,"p")].filter(p=>!p.getElementsByTagNameNS(WORD_NS,"p").length);const dateParts=(data.sendDate||todayStr()).split("-").map(Number),rocYear=dateParts[0]-1911;const allTexts=wordTextNodes(xmlDoc);for(let i=0;i<allTexts.length-6;i++){if(allTexts[i].textContent==="中華民國"&&allTexts[i+2]?.textContent==="年"&&allTexts[i+4]?.textContent==="月"){allTexts[i+1].textContent=` ${rocYear} `;allTexts[i+3].textContent=` ${dateParts[1]} `;allTexts[i+5].textContent=` ${dateParts[2]} `;break}}const nameParagraph=paragraphs.find(p=>wordTextNodes(p).map(n=>n.textContent).join("").includes("名稱："));if(nameParagraph)setWordParagraphText(nameParagraph,`　　　　　名稱：${data.senderName}`);const detailParagraph=paragraphs.find(p=>{const text=wordTextNodes(p).map(n=>n.textContent).join("");return text.includes("寄件人代表")&&text.includes("詳細地址")&&text.includes("電話號碼")});if(detailParagraph)setWordParagraphText(detailParagraph,`寄件人代表　${data.representative||""}　　　詳細地址：${data.senderAddress||""}　　　電話號碼：${data.senderPhone||""}`)}
 function fillWordItems(xmlDoc,items){const table=xmlDoc.getElementsByTagNameNS(WORD_NS,"tbl")[0];if(!table)throw new Error("原始 Word 找不到明細表格");const rows=[...table.getElementsByTagNameNS(WORD_NS,"tr")];for(let index=0;index<20;index++){const row=rows[index+2],item=items[index]||{};if(!row)continue;const cells=[...row.getElementsByTagNameNS(WORD_NS,"tc")];const values=[String(index+1),item.trackingNo||"",item.receiverName||"",item.address||"",item.returnReceipt?"✓":"",item.printedMatter?"✓":"",item.weight||"",item.postage||"",item.contents||""];values.forEach((value,cellIndex)=>{if(cells[cellIndex])setWordCellText(cells[cellIndex],value)})}}
 function updateWordCount(xmlDoc,data){const paragraphs=[...xmlDoc.getElementsByTagNameNS(WORD_NS,"p")].filter(p=>!p.getElementsByTagNameNS(WORD_NS,"p").length);paragraphs.forEach(p=>{const text=wordTextNodes(p).map(n=>n.textContent).join("");if(text.includes("件照收無誤")&&text.includes("共"))setWordParagraphText(p,`     ${data.mailType} / 共 ${data.items.length} 件照收無誤`)})}
-async function downloadOutgoingWord(){const data=outgoingFormData();if(!validateOutgoing(data))return;if(!window.JSZip){alert("Word 套表元件尚未載入，請確認網路連線後重新整理");return}try{const templateUrl=`./交寄大宗限時掛號及掛號函件執據存根2聯單_原始範本.docx?refresh=${Date.now()}`,response=await fetch(templateUrl,{cache:"no-store"});if(!response.ok)throw new Error(`無法讀取 Word 範本（${response.status}）`);const zip=await JSZip.loadAsync(await response.arrayBuffer()),documentFile=zip.file("word/document.xml");if(!documentFile)throw new Error("Word 範本缺少 document.xml");const parser=new DOMParser(),xmlDoc=parser.parseFromString(await documentFile.async("string"),"application/xml");if(xmlDoc.getElementsByTagName("parsererror").length)throw new Error("Word 範本 XML 解析失敗");fillWordHeader(xmlDoc,data);fillWordItems(xmlDoc,data.items);updateWordCount(xmlDoc,data);zip.file("word/document.xml",new XMLSerializer().serializeToString(xmlDoc));const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"}),url=URL.createObjectURL(blob),link=document.createElement("a"),generatedAt=new Date().toLocaleTimeString("zh-TW",{hour12:false}).replaceAll(":","");link.href=url;link.download=`大宗掛號執據_${data.sendDate}_${generatedAt}.docx`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(error){console.error(error);alert("產生原版 Word 失敗：" + (error?.message||error))}} window.downloadOutgoingWord=downloadOutgoingWord;
+async function downloadOutgoingWord(){const data=outgoingFormData();if(!validateOutgoing(data))return;if(!await loadDocumentLibrary("JSZip"))return;try{const templateUrl=`./交寄大宗限時掛號及掛號函件執據存根2聯單_原始範本.docx?refresh=${Date.now()}`,response=await fetch(templateUrl,{cache:"no-store"});if(!response.ok)throw new Error(`無法讀取 Word 範本（${response.status}）`);const zip=await JSZip.loadAsync(await response.arrayBuffer()),documentFile=zip.file("word/document.xml");if(!documentFile)throw new Error("Word 範本缺少 document.xml");const parser=new DOMParser(),xmlDoc=parser.parseFromString(await documentFile.async("string"),"application/xml");if(xmlDoc.getElementsByTagName("parsererror").length)throw new Error("Word 範本 XML 解析失敗");fillWordHeader(xmlDoc,data);fillWordItems(xmlDoc,data.items);updateWordCount(xmlDoc,data);zip.file("word/document.xml",new XMLSerializer().serializeToString(xmlDoc));const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"}),url=URL.createObjectURL(blob),link=document.createElement("a"),generatedAt=new Date().toLocaleTimeString("zh-TW",{hour12:false}).replaceAll(":","");link.href=url;link.download=`大宗掛號執據_${data.sendDate}_${generatedAt}.docx`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(error){console.error(error);alert("產生原版 Word 失敗：" + (error?.message||error))}} window.downloadOutgoingWord=downloadOutgoingWord;
 const EXCEL_NS="http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 function getExcelCell(xmlDoc,ref){return [...xmlDoc.getElementsByTagNameNS(EXCEL_NS,"c")].find(cell=>cell.getAttribute("r")===ref)}
 function clearExcelCellValue(cell){[...cell.children].filter(node=>["f","v","is"].includes(node.localName)).forEach(node=>node.remove())}
@@ -1076,7 +1120,7 @@ async function removeExcelCalcChain(zip){const relPath="xl/_rels/workbook.xml.re
 async function downloadOutgoingExcel({skipValidation=false}={}){
   const data=outgoingFormData();
   if(!skipValidation&&!validateOutgoing(data))return false;
-  if(!window.JSZip){alert("Excel 套表元件尚未載入，請確認網路連線後重新整理");return false}
+  if(!await loadDocumentLibrary("JSZip"))return false;
   try{
     const templateUrl=`./交寄大宗限時掛號及掛號函件執據存根_原始範本.xlsx?refresh=${Date.now()}`;
     const response=await fetch(templateUrl,{cache:"no-store"});
@@ -1100,11 +1144,11 @@ async function downloadOutgoingExcel({skipValidation=false}={}){
 let outgoingSaveAndDownloadBusy=false;
 async function saveAndDownloadOutgoingExcel(){
   if(outgoingSaveAndDownloadBusy)return;
-  if(!window.JSZip){alert("Excel 套表元件尚未載入，請確認網路連線後重新整理");return}
   outgoingSaveAndDownloadBusy=true;
   $("saveAndDownloadOutgoingButton").disabled=true;
   $("saveOutgoingOnlyButton").disabled=true;
   try{
+    if(!await loadDocumentLibrary("JSZip"))return;
     if(!await saveOutgoingBatch({silent:true}))return;
     const refreshWarning=$("outgoingSaveStatus").hidden?"":$("outgoingSaveStatus").textContent;
     if(await downloadOutgoingExcel({skipValidation:true}))setOutgoingSaveStatus(refreshWarning?`Excel 已開始下載。${refreshWarning}`:"寄件資料已儲存，Excel 已開始下載。",Boolean(refreshWarning));
@@ -1180,7 +1224,12 @@ document.addEventListener("input",event=>{const target=event.target;if(!(target 
 document.addEventListener("change",event=>{const target=event.target;if(!(target instanceof HTMLElement))return;if(target.closest("#generalOutgoingPage"))clearGeneralOutgoingValidation();if(target.closest("#outgoingPage")&&$("outgoingSaveStatus").classList.contains("is-error"))setOutgoingSaveStatus("")});
 async function logout(){if(Object.keys(draftPageNames).some(hasUnsavedForm)&&!confirm("尚有未儲存的郵件資料。登出後這些修改會遺失，確定登出？"))return;await signOut(auth);resetMailForm();resetGeneralOutgoingForm(true);resetOutgoingForm();sessionStorage.removeItem("mailLoginLogged");localStorage.removeItem("mailUserRole");localStorage.removeItem("mailUserEmail");localStorage.removeItem("mailUserName")} window.logout=logout;
 
+let authRun=0;
 onAuthStateChanged(auth,async(user)=>{
+  const run=++authRun;
+  incomingStartupPending=true;
+  outgoingStartupPending=true;
+  $("saveIncomingButton").disabled=true;
   currentIsSystemAdmin=false;
   if(!user){document.documentElement.classList.remove("mail-returning");$("loginPage").style.display="flex";$("systemArea").style.display="none";return}
   try{
@@ -1195,10 +1244,39 @@ onAuthStateChanged(auth,async(user)=>{
     if(member?.active===false&&!currentIsSystemAdmin){alert("此共用人員帳號已停用，請洽系統管理員");await signOut(auth);return}
     currentRole=currentIsSystemAdmin?"admin":found.role||"user";currentUser=mailUserDisplayName(member,found,user);currentUserEmail=user.email;
     localStorage.setItem("mailUserRole",currentRole);localStorage.setItem("mailUserEmail",user.email);localStorage.setItem("mailUserName",currentUser);
-    if(!sessionStorage.getItem("mailLoginLogged")){try{await addDoc(collection(db,"mailLoginLogs"),{name:currentUser,email:user.email,role:currentRole,loginTime:new Date()});sessionStorage.setItem("mailLoginLogged","true")}catch(error){console.warn("登入紀錄寫入失敗",error)}}
     $("sidebarUserName").textContent=currentUser;document.documentElement.classList.add("mail-returning");$("loginPage").style.display="none";
-    try{await Promise.all([loadDepartments(),loadMailTypes()]);await Promise.all([loadUsers(),loadMailRecords(),loadOutgoingBatches(),loadLoginLogs()])}catch(error){console.error("系統初始化部分資料載入失敗",error);alert("系統資料載入失敗："+(error?.message||error))}
-    applyRoleAccess();restoreLastPage();$("systemArea").style.display="block";requestAnimationFrame(()=>$("systemArea").style.opacity="1");finishEarlyIncomingForm();prepareGeneralOutgoingPage();prepareOutgoingPage();if(window.lucide)lucide.createIcons();
+    applyRoleAccess();restoreLastPage();$("systemArea").style.display="block";$("systemArea").style.opacity="1";
+
+    const incomingSetup=Promise.allSettled([loadDepartments(),loadMailTypes()]).then(results=>{
+      if(run===authRun)finishEarlyIncomingForm();
+      return results;
+    });
+    const incomingReady=Promise.all([
+      incomingSetup,
+      Promise.allSettled([loadMailRecords()])
+    ]).then(([settings,history])=>{
+      if(run===authRun){
+        incomingStartupPending=false;
+        $("saveIncomingButton").disabled=false;
+      }
+      return [...settings,...history];
+    });
+    const outgoingReady=Promise.allSettled([loadOutgoingBatches()]).then(results=>{
+      if(run===authRun)outgoingStartupPending=false;
+      return results;
+    });
+    if(!sessionStorage.getItem("mailLoginLogged")){
+      addDoc(collection(db,"mailLoginLogs"),{name:currentUser,email:user.email,role:currentRole,loginTime:new Date()})
+        .then(()=>{if(run===authRun)sessionStorage.setItem("mailLoginLogged","true")})
+        .catch(error=>console.warn("登入紀錄寫入失敗",error));
+    }
+    const [incomingResults,outgoingResults]=await Promise.all([incomingReady,outgoingReady]);
+    if(run!==authRun)return;
+    const failed=[...incomingResults,...outgoingResults].filter(result=>result.status==="rejected");
+    if(failed.length){
+      console.error("系統初始化部分資料載入失敗",failed.map(result=>result.reason));
+      showAppToast("部分郵件資料載入失敗，請重新整理後再核對紀錄。","error");
+    }
   }catch(error){console.error("登入驗證失敗",error);alert("登入驗證失敗："+(error?.message||error));await signOut(auth)}
 });
 })();

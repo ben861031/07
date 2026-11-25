@@ -9,9 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <script defer src="./assets/vendor/lucide-1.80.0.min.js"></script>
 <script defer src="./scripts/init-icons.js?v=1.9.27"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.32">
+<link rel="stylesheet" href="./styles.css?v=1.9.33">
 </head>
 <body>
 
@@ -169,8 +167,8 @@
               <p class="page-desc">可一次登錄多筆外部來信；每筆須填寄件人、收件部門與收件人，未完成的列會標示。</p>
             </div>
             <div>
-              <button class="btn btn-gray" id="incomingResetButton" onclick="resetMailForm()"><i data-lucide="rotate-ccw"></i>清空重填</button>
-              <button class="btn btn-primary" id="saveIncomingButton" onclick="saveMailRecord()"><i data-lucide="save"></i>儲存郵件</button>
+              <button class="btn btn-gray" id="incomingResetButton" onclick="resetMailForm()" disabled><i data-lucide="rotate-ccw"></i>清空重填</button>
+              <button class="btn btn-primary" id="saveIncomingButton" onclick="saveMailRecord()" disabled><i data-lucide="save"></i>儲存郵件</button>
             </div>
           </div>
           <input type="hidden" id="mailId"> <!-- Used when editing single mail -->
@@ -197,7 +195,21 @@
                    <th style="width:250px">操作</th>
                 </tr>
               </thead>
-              <tbody id="incomingEntryRows"></tbody>
+              <tbody id="incomingEntryRows">
+                <tr class="outgoing-entry-row incoming-entry-row" data-early-boot="true">
+                  <td class="incoming-seq">1</td>
+                  <td data-label="郵件類型"><select data-field="mailType" aria-label="郵件類型"><option value="掛號">1. 掛號</option><option value="限掛">2. 限掛</option><option value="平信">3. 平信</option><option value="黑貓宅急便">4. 黑貓宅急便</option><option value="其他">5. 其他</option></select></td>
+                  <td data-label="掛號／單號"><input data-field="trackingNo" aria-label="掛號或單號"></td>
+                  <td class="incoming-sender-cell" data-label="寄件人／寄件單位"><input data-field="sender" aria-label="寄件人或寄件單位" autocomplete="off"></td>
+                  <td data-label="收件部門"><select data-field="department" aria-label="收件部門" disabled><option value="">載入部門中</option></select></td>
+                  <td class="incoming-receiver-cell" data-label="收件人"><input data-field="receiver" aria-label="收件人" autocomplete="off"></td>
+                  <td class="incoming-row-actions"><input type="hidden" data-field="remark"><div class="row-action-group">
+                    <button class="btn btn-gray row-action-btn" type="button" disabled>複製</button>
+                    <button class="btn btn-gray row-action-btn" type="button" disabled>新增</button>
+                    <button class="btn btn-red row-action-btn" type="button" disabled>刪除</button>
+                  </div></td>
+                </tr>
+              </tbody>
             </table>
           </div>
           <datalist id="incomingSenderOptions"></datalist>
@@ -594,11 +606,18 @@
 <dialog id="appConfirmDialog" class="app-feedback-dialog" aria-labelledby="appConfirmTitle" aria-describedby="appConfirmMessage"><h2 id="appConfirmTitle"></h2><p id="appConfirmMessage"></p><div class="app-feedback-actions"><button type="button" class="btn btn-gray" id="appConfirmCancel">取消</button><button type="button" class="btn btn-primary" id="appConfirmAccept">確認</button></div></dialog>
 <div id="appToast" class="app-toast" role="status" aria-live="polite" hidden><span id="appToastMessage"></span><button type="button" id="appToastClose" aria-label="關閉訊息">×</button></div>
 <dialog id="shareTrackingDialog" class="app-feedback-dialog share-tracking-dialog" aria-labelledby="shareTrackingTitle"><h2 id="shareTrackingTitle">分享郵局查詢資訊</h2><p>確認以下內容後，可直接複製貼到 LINE 或 Email。</p><textarea id="shareTrackingText" readonly aria-label="寄件與郵局查詢資訊"></textarea><div class="app-feedback-actions"><button type="button" class="btn btn-gray" onclick="document.getElementById('shareTrackingDialog').close()">關閉</button><button type="button" class="btn btn-primary" id="copyTrackingShareButton" onclick="copyTrackingShareText()">複製內容</button></div></dialog>
-<script>(function(){const date=document.getElementById('receiveDate'),body=document.getElementById('incomingEntryRows');if(!date||!body)return;const now=new Date();date.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');body.innerHTML='<tr class="incoming-entry-row" data-early-boot="true"><td class="incoming-seq">1</td><td data-label="郵件類型"><select data-field="mailType"><option value="掛號">掛號</option><option value="限掛">限掛</option><option value="平信">平信</option><option value="黑貓宅急便">黑貓宅急便</option><option value="其他">其他</option></select></td><td data-label="掛號／單號"><input data-field="trackingNo" aria-label="掛號或單號"></td><td data-label="寄件人／寄件單位"><input data-field="sender" aria-label="寄件人或寄件單位"></td><td data-label="收件部門"><select data-field="department" disabled><option value="">同步部門名單中</option></select></td><td data-label="收件人"><input data-field="receiver" aria-label="收件人"></td><td class="incoming-row-actions"><input type="hidden" data-field="remark"><span class="early-row-note">部門名單載入後可儲存</span></td></tr>';document.getElementById('saveIncomingButton').disabled=true;document.getElementById('incomingResetButton').disabled=true})()</script>
+<script>
+(function(){
+  const now=new Date();
+  document.getElementById('receiveDate').value=[
+    now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')
+  ].join('-');
+})();
+</script>
 <script defer src="./scripts/mail-import.js?v=1.9.22"></script>
 <script defer src="./scripts/postal-tracking.js?v=1.9.3"></script>
 <script defer src="./assets/postal/districts.js?v=1.9.27"></script>
 <script defer src="./scripts/postal-tools.js?v=1.9.27"></script>
-<script defer src="./app.js?v=1.9.32"></script>
+<script defer src="./app.js?v=1.9.33"></script>
 </body>
 </html>
