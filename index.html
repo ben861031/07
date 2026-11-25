@@ -4,11 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>郵件 / 掛號簽收管理系統</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="./styles.css?v=1.9.25">
+<script>try{if(localStorage.getItem("mailUserEmail"))document.documentElement.classList.add("mail-returning")}catch(error){}</script>
+<style>html.mail-returning #systemArea{display:block;opacity:1}html:not(.mail-returning) #loginPage{display:flex}</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script defer src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="./styles.css?v=1.9.26">
 </head>
 <body>
 
@@ -165,10 +167,6 @@
               <span>收件日期</span>
               <input type="date" id="receiveDate">
             </label>
-            <button type="button" class="btn btn-gray incoming-apply-action" onclick="applyIncomingDefaults()">
-              <i data-lucide="copy"></i>
-              套用第一列到全部
-            </button>
           </div>
           <div class="incoming-help-line">
             <i data-lucide="keyboard"></i>
@@ -196,6 +194,7 @@
           </div>
           <p id="incomingValidationMessage" class="incoming-form-message incoming-form-error" role="alert" hidden></p>
           <p id="incomingSaveStatus" class="incoming-form-message incoming-form-success" role="status" hidden></p>
+          <div id="incomingNextActions" class="post-save-actions" hidden><span>接下來</span><button type="button" class="btn btn-primary" onclick="openSavedSheet()">產生這天的簽收單</button><button type="button" class="btn btn-gray" onclick="focusNextIncoming()">繼續登錄</button></div>
         </div>
       </section>
 
@@ -271,7 +270,7 @@
             <div class="general-outgoing-header-actions">
               <span class="pending-outgoing-chip"><i data-lucide="clock-3"></i>待補號碼 <b id="generalOutgoingPendingCount">0</b></span>
               <button class="btn btn-gray" onclick="resetGeneralOutgoingForm()"><i data-lucide="rotate-ccw"></i>清空重填</button>
-              <button class="btn btn-primary" onclick="saveGeneralOutgoingRecords()"><i data-lucide="save"></i>儲存寄件</button>
+              <button class="btn btn-primary" id="saveGeneralOutgoingButton" onclick="saveGeneralOutgoingRecords()"><i data-lucide="save"></i>儲存寄件</button>
             </div>
           </div>
           <div class="general-outgoing-meta">
@@ -323,6 +322,9 @@
           <div class="outgoing-entry-actions">
             <span id="generalOutgoingItemCount">有效資料 0 件</span>
           </div>
+          <p id="generalOutgoingValidationMessage" class="incoming-form-message incoming-form-error" role="alert" hidden></p>
+          <p id="generalOutgoingSaveStatus" class="incoming-form-message incoming-form-success" role="status" hidden></p>
+          <div id="generalOutgoingNextActions" class="post-save-actions" hidden><span>接下來</span><button type="button" class="btn btn-gray" onclick="showSavedGeneralHistory()">查看這天的寄件紀錄</button><button type="button" id="generalOutgoingPendingAction" class="btn btn-gray" onclick="showPendingGeneralHistory()">查看待補號碼</button></div>
         </div>
 
         <div class="panel outgoing-history-panel outgoing-wide-panel">
@@ -357,6 +359,7 @@
             </div>
           </div>
           <p id="outgoingSaveStatus" class="outgoing-save-status" role="status" aria-live="polite" hidden></p>
+          <div id="outgoingNextActions" class="post-save-actions" hidden><span>接下來</span><button type="button" class="btn btn-gray" onclick="showSavedBulkHistory()">查看這天的寄件紀錄</button><button type="button" class="btn btn-gray" onclick="openBulkSuffixDialog()">批次補登後 8 碼</button></div>
           <input type="hidden" id="outgoingBatchId">
           <div class="sender-profile-bar">
             <div>
@@ -558,10 +561,10 @@
 </dialog>
 <dialog id="outgoingSuffixDialog" class="postal-dialog" aria-labelledby="outgoingSuffixTitle"><h2 id="outgoingSuffixTitle">確認郵局查詢後 8 碼</h2><p id="outgoingSuffixSource" class="page-desc"></p><p class="page-desc">依郵局執據確認：收寄局碼 6 碼＋郵件種類碼 2 碼。這組碼只用於查詢，印單仍用前 6 碼。</p><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="outgoingOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"></label><label>郵件種類碼（2 碼）<input id="outgoingMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}"></label></div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="deferOutgoingSuffix()">交寄後補登</button><button class="btn btn-primary" type="button" onclick="confirmOutgoingSuffix()">確認使用</button></div></dialog>
 <dialog id="bulkSuffixDialog" class="postal-dialog postal-bulk-dialog" aria-labelledby="bulkSuffixTitle"><h2 id="bulkSuffixTitle">批次補登查詢後 8 碼</h2><p class="page-desc">選取已核對郵局執據的批次。確認前會顯示影響筆數與完整碼範例。</p><div id="bulkSuffixBatchList" class="postal-batch-list"></div><div class="postal-suffix-inputs"><label>收寄局碼（6 碼）<input id="bulkOfficeCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" oninput="previewBulkSuffix()"></label><label>郵件種類碼（2 碼）<input id="bulkMailCode" inputmode="numeric" maxlength="2" pattern="[0-9]{2}" oninput="previewBulkSuffix()"></label></div><div id="bulkSuffixPreview" class="postal-preview" aria-live="polite">請選擇批次並填寫後 8 碼。</div><div class="postal-dialog-actions"><button class="btn btn-gray" type="button" onclick="document.getElementById('bulkSuffixDialog').close()">取消</button><button id="applyBulkSuffixButton" class="btn btn-primary" type="button" onclick="applyBulkSuffix()" disabled>確認補登</button></div></dialog>
-<script src="./scripts/mail-import.js?v=1.9.22"></script>
-<script src="./scripts/postal-tracking.js?v=1.9.3"></script>
-<script src="./assets/postal/districts.js?v=1.9.25"></script>
-<script src="./scripts/postal-tools.js?v=1.9.25"></script>
-<script src="./app.js?v=1.9.25"></script>
+<script defer src="./scripts/mail-import.js?v=1.9.22"></script>
+<script defer src="./scripts/postal-tracking.js?v=1.9.3"></script>
+<script defer src="./assets/postal/districts.js?v=1.9.26"></script>
+<script defer src="./scripts/postal-tools.js?v=1.9.26"></script>
+<script defer src="./app.js?v=1.9.26"></script>
 </body>
 </html>

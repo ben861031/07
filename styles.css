@@ -761,6 +761,16 @@ button,input,select,textarea{font:inherit}
 .outgoing-save-status.is-warning{border-color:#fcd34d;background:#fffbeb;color:#92400e}
 .outgoing-save-status[hidden]{display:none}
 
+/* 登錄後續操作與表單欄位錯誤 */
+.post-save-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 18px;padding:12px 14px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff}
+.post-save-actions[hidden]{display:none}
+.post-save-actions>span{font-size:13px;font-weight:800;color:#475569;margin-right:4px}
+.post-save-actions .btn{min-height:38px;padding:8px 12px;font-size:13px}
+.form-invalid{border-color:#e11d48!important;box-shadow:0 0 0 3px rgba(225,29,72,.12)!important}
+.outgoing-save-status.is-error{border-color:#fecaca;background:#fff1f2;color:#b91c1c}
+@media(max-width:720px){.post-save-actions .btn{flex:1 1 160px}}
+@media print{.post-save-actions{display:none!important}}
+
 @media(max-width:720px){
   .general-tools-grid{grid-template-columns:1fr}
   /* The two everyday entry grids become one card per mail on a phone. */
