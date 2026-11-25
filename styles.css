@@ -791,25 +791,58 @@ button,input,select,textarea{font:inherit}
   #sheetPreviewPanel{display:block!important;margin:0!important}
   #signSheetPreview{margin:0!important;padding:0!important;overflow:visible!important}
 }
-.postal-tool-panel{max-width:960px}
-.postal-tool-fields{display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(2,minmax(140px,1fr));gap:16px;margin:28px 0 22px}
-.postal-tool-fields label{display:flex;flex-direction:column;gap:9px;font-size:15px;font-weight:800;color:#334155}
-.postal-tool-fields input,.postal-tool-fields select{width:100%;height:52px;padding:0 14px;border:1px solid #d7e2f1;border-radius:12px;background:#fff;color:#0f172a;font-size:16px}
-.postal-tool-fields input:focus-visible,.postal-tool-fields select:focus-visible{outline:3px solid #bfdbfe;outline-offset:1px;border-color:#2563eb}
-.postage-result{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
-.postage-result>div{display:flex;flex-direction:column;gap:7px;padding:18px 20px;border:1px solid #dbe5f2;border-radius:14px;background:#f8fafc}
-.postage-result span{font-size:14px;color:#64748b;font-weight:700}
-.postage-result strong{font-size:23px;color:#0f172a}
-.postage-result .postage-total{background:#eff6ff;border-color:#bfdbfe}
-.postage-result .postage-total strong{color:#1d4ed8}
 .postal-tool-note{margin-top:15px;color:#64748b;line-height:1.7;font-size:14px}
 .postal-tool-note a{color:#1d4ed8;text-decoration:underline;text-underline-offset:3px}
 .postal-tool-error{color:#b91c1c;font-weight:700;min-height:22px}
-.postal-zip-label{display:flex;flex-direction:column;gap:9px;margin:26px 0 16px;font-size:15px;font-weight:800;color:#334155}
-.postal-zip-label input{height:52px;padding:0 14px;border:1px solid #d7e2f1;border-radius:12px;background:#fff;color:#0f172a;font-size:16px}
-.postal-zip-label input:focus-visible{outline:3px solid #bfdbfe;outline-offset:1px;border-color:#2563eb}
-.postal-zip-results{min-height:60px;max-height:360px;overflow:auto;border:1px solid #dbe5f2;border-radius:14px;background:#fff;padding:8px 16px;color:#64748b}
-.postal-zip-row{display:flex;align-items:center;gap:22px;padding:12px 4px;border-bottom:1px solid #eef2f7;color:#334155}
-.postal-zip-row:last-child{border-bottom:0}
-.postal-zip-row strong{font-size:20px;color:#1d4ed8;font-variant-numeric:tabular-nums}
-@media(max-width:720px){.postal-tool-fields{grid-template-columns:1fr}.postage-result{grid-template-columns:1fr}}
+
+/* v1.9.24: 郵務工具採固定閱讀寬度，輸入與結果各自成區。 */
+.postal-tool-panel{width:min(100%,1120px);max-width:1120px;margin-inline:auto;padding:30px 32px}
+.postal-tool-heading{margin-bottom:24px}
+.postal-tool-heading .page-desc{margin-top:8px}
+.postal-tool-layout,.postal-zip-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:20px;align-items:stretch}
+.postal-tool-card{border:1px solid #dbe5f2;border-radius:18px;padding:26px;background:#fff;min-width:0}
+.postal-tool-panel [hidden]{display:none!important}
+.postal-tool-card h3{margin:0 0 22px;font-size:21px;color:#10213c}
+.postal-tool-fields{display:grid;grid-template-columns:1fr;gap:17px;margin:0}
+.postal-tool-fields-pair,.postal-zip-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#postageSpeedpostFields{grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr)}
+.postal-tool-fields label,.postal-zip-search-card label{display:flex;flex-direction:column;gap:8px;font-size:15px;font-weight:750;color:#334155;min-width:0}
+.postal-tool-fields input,.postal-tool-fields select,.postal-zip-search-card input,.postal-zip-search-card select,.postal-address-form input{height:52px;width:100%;min-width:0;padding:0 14px;border:1px solid #cbd9ec;border-radius:12px;background:#fff;color:#10213c;font-size:16px;font-weight:500}
+.postal-tool-fields select,.postal-zip-search-card select{padding-right:32px}
+.postal-tool-fields small{font-size:13px;font-weight:500;color:#64748b;line-height:1.35}
+.postal-tool-fields input:focus-visible,.postal-tool-fields select:focus-visible,.postal-zip-search-card input:focus-visible,.postal-zip-search-card select:focus-visible,.postal-address-form input:focus-visible{outline:3px solid #bfdbfe;outline-offset:1px;border-color:#2563eb}
+.postal-tool-fields input[aria-invalid="true"]{border-color:#e11d48}
+.postal-tool-error{margin:16px 0 0;min-height:0}
+.postal-result-card{display:flex;flex-direction:column;justify-content:center;background:linear-gradient(145deg,#1246a2,#2368dc);border-color:#245fc3;color:#fff;padding:32px 36px}
+.postal-result-card h3{color:#dceaff;margin:0 0 20px;font-size:18px}
+.postal-total-line{display:flex;align-items:baseline;gap:12px;line-height:1.08;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.postal-total-line span{font-size:19px;color:#d9eaff}
+.postal-total-line output{font-size:clamp(48px,4.5vw,72px);font-weight:800;letter-spacing:-.035em}
+.postal-result-details{border-top:1px solid rgba(255,255,255,.36);margin:25px 0 0;padding-top:12px}
+.postal-result-details>div{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:8px 0}
+.postal-result-details dt{color:#dceaff;font-size:15px}
+.postal-result-details dd{margin:0;font-weight:750;font-size:17px;text-align:right}
+.postal-tool-panel>.postal-tool-note{max-width:1040px;margin:20px 0 0;font-size:14px;line-height:1.75}
+.postal-zip-search-card{min-height:330px}
+.postal-zip-search-card h3{margin-bottom:19px}
+.postal-zip-query-label{margin-top:16px}
+.postal-zip-status{margin:16px 0 8px;font-size:14px;color:#64748b}
+.postal-zip-list{max-height:200px;overflow-y:auto;border:1px solid #e0e8f4;border-radius:12px}
+.postal-zip-item{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:10px 14px;border:0;border-bottom:1px solid #edf2f8;background:#fff;text-align:left;color:#24344d;font:inherit;cursor:pointer}
+.postal-zip-item:last-child{border-bottom:0}
+.postal-zip-item:hover,.postal-zip-item:focus-visible{background:#eff6ff}
+.postal-zip-item strong{color:#1d4ed8;font-size:17px;font-variant-numeric:tabular-nums}
+.postal-zip-result-card{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:#f0f6ff;border-color:#cfe1fc}
+.postal-zip-result-card>span{color:#536784;font-size:15px;font-weight:750}
+.postal-zip-result-card>strong{display:block;margin:12px 0;color:#1d4ed8;font-size:clamp(54px,5vw,78px);line-height:1.1;font-variant-numeric:tabular-nums}
+.postal-zip-result-card>p{margin:0;color:#334155;font-size:19px;font-weight:700}
+.postal-address-card{margin-top:20px;display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:8px 26px;align-items:start;background:#f8fafc}
+.postal-address-card h3{margin-bottom:8px}
+.postal-address-card p{margin:0;color:#64748b;font-size:14px;line-height:1.6}
+.postal-address-form{display:flex;gap:10px;align-items:center}
+.postal-address-form .btn{flex:none;height:52px;white-space:nowrap}
+.postal-address-result{grid-column:2;min-height:27px;color:#334155;font-size:16px}
+.postal-address-code{display:inline-block;margin-left:10px;color:#1d4ed8;font-size:30px;line-height:1.2;font-variant-numeric:tabular-nums}
+.postal-tool-panel .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:800px){.postal-tool-panel{padding:22px}.postal-tool-layout,.postal-zip-layout{grid-template-columns:1fr}.postal-result-card{min-height:280px}.postal-zip-result-card{min-height:190px}.postal-address-card{grid-template-columns:1fr}.postal-address-result{grid-column:1}}
+@media(max-width:520px){.postal-tool-panel{padding:18px}.postal-tool-card{padding:20px}.postal-tool-fields-pair,.postal-zip-fields,#postageSpeedpostFields{grid-template-columns:1fr}.postal-address-form{flex-direction:column;align-items:stretch}.postal-address-form .btn{width:100%}}

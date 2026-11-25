@@ -50,7 +50,7 @@ const matrix = [
 const rows = importApi.makeDraftRows(matrix, 0, mapping, { sendDate: '2026-11-18', mailType: '掛號函件' });
 assert.deepEqual(rows.map(row => row.mailType), ['雙掛號', '限時掛號', '掛號函件']);
 assert.match(html, /收件類型維護/);
-assert.match(html, /app\.js\?v=1\.9\.23/);
+assert.match(html, /app\.js\?v=1\.9\.25/);
 assert.match(html, /mail-import\.js\?v=1\.9\.22/);
 assert.doesNotMatch(html, /郵件類型維護/);
 console.log('PASS: 一般寄件種類獨立、舊稱相容、Excel 匯入及單號需求');
