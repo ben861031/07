@@ -933,19 +933,20 @@ button,input,select,textarea{font:inherit}
   .brand-title{font-size:16px;font-weight:800}
 }
 
-/* v1.9.30: one calm desktop row; collapse navigation when it no longer fits */
+/* 桌機選單集中在中間，系統名稱與帳號各有獨立空間。 */
 @media(min-width:1101px){
-  .top-navbar{display:flex;align-items:center;flex-wrap:nowrap;gap:18px;min-height:70px;padding:0 22px}
+  .top-navbar{display:flex;align-items:center;flex-wrap:nowrap;gap:clamp(24px,2.5vw,40px);min-height:70px;padding:0 22px}
   .brand-area{height:auto;flex:0 0 auto;gap:9px;padding:0;border:0}
   .brand-icon{width:35px;height:35px;border-radius:10px}
   .brand-icon svg{width:21px;height:21px}
   .brand-title{font-size:18px;font-weight:800;letter-spacing:0}
-  .top-menu{display:flex;align-self:stretch;flex:1 1 auto;justify-content:space-between;width:auto;height:auto;min-width:0;gap:0;margin:0;border:0}
+  .top-menu{display:flex;align-self:stretch;flex:1 0 auto;justify-content:center;width:auto;height:auto;min-width:max-content;gap:8px;margin:0;border:0}
   .top-menu-group{height:auto}
   .top-menu-button{gap:5px;padding:0 8px;font-size:14px;font-weight:700}
   .top-menu-button>.menu-icon{width:16px;height:16px}
   .top-chevron{width:13px;height:13px;margin-left:2px}
-  .top-user-area{flex:0 0 auto;align-self:center;margin-left:0}
+  .top-user-area{flex:0 1 auto;align-self:center;margin-left:0}
+  .top-user-area .top-logout-btn{flex-shrink:0}
   .top-user-text strong{font-size:14px}
 }
 @media(min-width:761px) and (max-width:1100px){
