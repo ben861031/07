@@ -627,9 +627,10 @@ function renderGeneralDispatchPreview(){
       <td data-label="編號">${index+1}</td>
       <td data-label="類別">${esc(record.mailType)}<label class="general-dispatch-stamp"><input type="checkbox" data-stamp> 自貼郵票</label></td>
       <td data-label="收件人">${esc(record.receiverName||"-")}</td>
+      <td data-label="寄達地址">${esc(record.address||"")}</td>
       <td data-label="郵資"><input type="number" inputmode="numeric" min="0" max="999999" step="1" data-postage aria-label="第 ${index+1} 筆郵資（元）" placeholder="元"></td>
       <td data-label="備註">${esc(record.remark||"")}</td>
-    </tr>`).join(""):`<tr><td colspan="5" class="general-dispatch-empty">這個日期沒有可列印的郵寄明細。</td></tr>`;
+    </tr>`).join(""):`<tr><td colspan="6" class="general-dispatch-empty">這個日期沒有可列印的郵寄明細。</td></tr>`;
   updateGeneralDispatchSummary();
 }
 
@@ -664,20 +665,20 @@ function buildGeneralDispatchPages(date,records,postage){
     const rows=Array.from({length:GENERAL_DISPATCH_PAGE_SIZE},(_,rowIndex)=>{
       const index=start+rowIndex;
       const record=records[index];
-      if(!record)return "<tr><td></td><td></td><td></td><td></td><td></td></tr>";
+      if(!record)return "<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>";
       const {postage:amount,selfStamped}=postage.entries[index];
-      return `<tr><td>${index+1}</td><td>${esc(record.mailType)}${selfStamped?"<small>自貼郵票</small>":""}</td><td>${esc(record.receiverName||"-")}</td><td>${amount??""}</td><td>${esc(record.remark||"")}</td></tr>`;
+      return `<tr><td>${index+1}</td><td>${esc(record.mailType)}${selfStamped?"<small>自貼郵票</small>":""}</td><td>${esc(record.receiverName||"-")}</td><td class="general-dispatch-address">${esc(record.address||"")}</td><td>${amount??""}</td><td>${esc(record.remark||"")}</td></tr>`;
     }).join("");
     const total=postage.missing?"":postage.total.toLocaleString("zh-TW");
     return `<section class="general-dispatch-paper">
       <header><h1>郵寄明細</h1><p>民國 ${year-1911} 年 ${month} 月 ${day} 日</p></header>
       <table>
-        <colgroup><col style="width:8%"><col style="width:20%"><col style="width:40%"><col style="width:12%"><col style="width:20%"></colgroup>
-        <thead><tr><th>編號</th><th>類別</th><th>收件人</th><th>郵資</th><th>備註</th></tr></thead>
+        <colgroup><col style="width:7%"><col style="width:13%"><col style="width:19%"><col style="width:39%"><col style="width:9%"><col style="width:13%"></colgroup>
+        <thead><tr><th>編號</th><th>類別</th><th>收件人</th><th>寄達地址</th><th>郵資</th><th>備註</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <footer>
-        ${pageIndex===pageCount-1?`<div>本日支付郵資：<span class="general-dispatch-total">${total}</span> 元</div>`:""}
+        ${pageIndex===pageCount-1?`<div class="general-dispatch-total-line">本日支付郵資：<span class="general-dispatch-total">${total}</span> 元</div>`:""}
         ${pageCount>1?`<small>第 ${pageIndex+1}／${pageCount} 頁</small>`:""}
       </footer>
     </section>`;
