@@ -540,6 +540,7 @@ async function saveGeneralOutgoingRecords(){
     await batch.commit();
     resetGeneralOutgoingForm(true);
     showGeneralOutgoingSaveStatus(`已儲存：新增 ${added} 筆、更新 ${updated} 筆一般寄件。`);
+    $("generalDispatchAfterSaveButton").hidden=true;
     $("generalOutgoingNextActions").hidden=false;$("generalOutgoingNextActions").dataset.date=sendDate;
     const auditJob=(async()=>{const auditBatch=writeBatch(db);for(const audit of audits)auditBatch.set(doc(collection(db,"mailAuditLogs")),{actorName:currentUser,actorEmail:currentUserEmail,actorRole:currentRole,action:audit.action,category:"outgoingMailRecord",targetId:audit.targetId,targetLabel:audit.targetLabel,before:compact(audit.before),after:compact(audit.after),createdAt:new Date()});await auditBatch.commit()})();
     const [reloadResult,auditResult]=await Promise.allSettled([loadOutgoingBatches(),auditJob]);
@@ -547,6 +548,9 @@ async function saveGeneralOutgoingRecords(){
     if(reloadResult.status==="rejected"){console.error("寄件清單更新失敗",reloadResult.reason);warnings.push("清單暫時無法更新")}
     if(auditResult.status==="rejected"){console.error("操作紀錄寫入失敗",auditResult.reason);warnings.push("操作紀錄未更新")}
     if(warnings.length)showGeneralOutgoingSaveStatus(`寄件已儲存 ${added+updated} 筆，但${warnings.join("；")}。`,true);
+    if(reloadResult.status==="fulfilled"){
+      $("generalDispatchAfterSaveButton").hidden=!generalDispatchRecordsForDate(sendDate).length;
+    }
     $("generalOutgoingPendingAction").hidden=!generalOutgoingRecords.some(record=>generalOutgoingTrackingStatus(record)==="pending");
   }catch(error){console.error(error);showGeneralOutgoingValidation("這次提交未確認成功，原輸入內容已保留。請先核對寄件紀錄，再重試："+(error?.message||error))}
   finally{generalOutgoingSaveInProgress=false;$("saveGeneralOutgoingButton").disabled=false}
@@ -596,6 +600,113 @@ function renderGeneralOutgoingList(){
   if(window.lucide)lucide.createIcons();
 }
 function openOutgoingHistory(){if(!showPage("historyPage",document.querySelector('[onclick*=historyPage]')))return;$("directionFilter").value="outgoing";$("outgoingSourceFilter").value="general";currentPage=1;renderMailTable()} window.openOutgoingHistory=openOutgoingHistory;
+
+const GENERAL_DISPATCH_TYPES=new Set(["平信","限時","印刷品"]);
+const GENERAL_DISPATCH_PAGE_SIZE=15;
+let generalDispatchRecords=[];
+
+function generalDispatchRecordsForDate(date){
+  if(!date)return [];
+  return generalOutgoingRecords
+    .filter(record=>record.sendDate===date&&GENERAL_DISPATCH_TYPES.has(record.mailType)&&!String(record.trackingNo??"").trim())
+    .sort((a,b)=>getTime(a.createdTime)-getTime(b.createdTime)||String(a.id).localeCompare(String(b.id)));
+}
+
+function openGeneralDispatchSheet(date){
+  const dialog=$("generalDispatchDialog");
+  $("generalDispatchDate").value=date||$("generalHistoryDateFilter").value||todayStr();
+  renderGeneralDispatchPreview();
+  dialog.showModal();
+}
+window.openGeneralDispatchSheet=openGeneralDispatchSheet;
+
+function renderGeneralDispatchPreview(){
+  generalDispatchRecords=generalDispatchRecordsForDate($("generalDispatchDate").value);
+  $("generalDispatchRows").innerHTML=generalDispatchRecords.length?generalDispatchRecords.map((record,index)=>`
+    <tr class="general-dispatch-row">
+      <td data-label="編號">${index+1}</td>
+      <td data-label="類別">${esc(record.mailType)}<label class="general-dispatch-stamp"><input type="checkbox" data-stamp> 自貼郵票</label></td>
+      <td data-label="收件人">${esc(record.receiverName||"-")}</td>
+      <td data-label="郵資"><input type="number" inputmode="numeric" min="0" max="999999" step="1" data-postage aria-label="第 ${index+1} 筆郵資（元）" placeholder="元"></td>
+      <td data-label="備註">${esc(record.remark||"")}</td>
+    </tr>`).join(""):`<tr><td colspan="5" class="general-dispatch-empty">這個日期沒有可列印的郵寄明細。</td></tr>`;
+  updateGeneralDispatchSummary();
+}
+
+function readGeneralDispatchPostage(){
+  const inputs=[...$("generalDispatchRows").querySelectorAll("[data-postage]")];
+  const entries=inputs.map(input=>{
+    const selfStamped=input.disabled;
+    const postage=selfStamped?0:input.value===""?null:Number(input.value);
+    return {input,selfStamped,postage};
+  });
+  const invalid=entries.find(({input})=>!input.validity.valid);
+  const missing=entries.filter(entry=>entry.postage===null).length;
+  const total=entries.reduce((sum,entry)=>sum+(entry.postage||0),0);
+  return {entries,invalid,missing,total};
+}
+
+function updateGeneralDispatchSummary(){
+  const {invalid,missing,total}=readGeneralDispatchPostage();
+  const count=generalDispatchRecords.length;
+  const postageText=invalid?"請將郵資填為有效的整數金額":missing
+    ?`已填郵資 ${total.toLocaleString("zh-TW")} 元，${missing} 筆郵資留白`
+    :`本日支付郵資 ${total.toLocaleString("zh-TW")} 元`;
+  $("generalDispatchSummary").textContent=count?`共 ${count} 筆｜${postageText}`:"共 0 筆";
+  $("printGeneralDispatchButton").disabled=!count||Boolean(invalid);
+}
+
+function buildGeneralDispatchPages(date,records,postage){
+  const [year,month,day]=date.split("-").map(Number);
+  const pageCount=Math.ceil(records.length/GENERAL_DISPATCH_PAGE_SIZE);
+  return Array.from({length:pageCount},(_,pageIndex)=>{
+    const start=pageIndex*GENERAL_DISPATCH_PAGE_SIZE;
+    const rows=Array.from({length:GENERAL_DISPATCH_PAGE_SIZE},(_,rowIndex)=>{
+      const index=start+rowIndex;
+      const record=records[index];
+      if(!record)return "<tr><td></td><td></td><td></td><td></td><td></td></tr>";
+      const {postage:amount,selfStamped}=postage.entries[index];
+      return `<tr><td>${index+1}</td><td>${esc(record.mailType)}${selfStamped?"<small>自貼郵票</small>":""}</td><td>${esc(record.receiverName||"-")}</td><td>${amount??""}</td><td>${esc(record.remark||"")}</td></tr>`;
+    }).join("");
+    const total=postage.missing?"":postage.total.toLocaleString("zh-TW");
+    return `<section class="general-dispatch-paper">
+      <header><h1>郵寄明細</h1><p>民國 ${year-1911} 年 ${month} 月 ${day} 日</p></header>
+      <table>
+        <colgroup><col style="width:8%"><col style="width:20%"><col style="width:40%"><col style="width:12%"><col style="width:20%"></colgroup>
+        <thead><tr><th>編號</th><th>類別</th><th>收件人</th><th>郵資</th><th>備註</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <footer>
+        ${pageIndex===pageCount-1?`<div>本日支付郵資：<span class="general-dispatch-total">${total}</span> 元</div>`:""}
+        ${pageCount>1?`<small>第 ${pageIndex+1}／${pageCount} 頁</small>`:""}
+      </footer>
+    </section>`;
+  }).join("");
+}
+
+function printGeneralDispatchSheet(){
+  const date=$("generalDispatchDate").value;
+  if(!generalDispatchRecords.length||generalDispatchRecords[0].sendDate!==date)return;
+  const postage=readGeneralDispatchPostage();
+  if(postage.invalid){postage.invalid.input.reportValidity();return}
+  $("generalDispatchPrintArea").innerHTML=buildGeneralDispatchPages(date,generalDispatchRecords,postage);
+  document.body.classList.add("printing-general-dispatch");
+  window.print();
+}
+
+$("generalDispatchDate").addEventListener("change",renderGeneralDispatchPreview);
+$("generalDispatchRows").addEventListener("input",event=>{
+  if(event.target.matches("[data-stamp]")){
+    event.target.closest("tr").querySelector("[data-postage]").disabled=event.target.checked;
+  }
+  updateGeneralDispatchSummary();
+});
+$("printGeneralDispatchButton").addEventListener("click",printGeneralDispatchSheet);
+window.addEventListener("afterprint",()=>{
+  if(!document.body.classList.contains("printing-general-dispatch"))return;
+  document.body.classList.remove("printing-general-dispatch");
+  $("generalDispatchPrintArea").replaceChildren();
+});
 
 function excelImportMatrix(sheetName){
   const sheet=excelImportWorkbook?.Sheets[sheetName];
